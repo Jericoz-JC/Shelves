@@ -2,7 +2,6 @@ import { Settings, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
-  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -40,29 +39,21 @@ export function ReaderControls({
         <Button
           variant="ghost"
           size="icon"
-          className="h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm shadow-md ring-1 ring-border/50"
+          className="reading-surface-button h-10 w-10 rounded-full backdrop-blur-sm shadow-md"
         >
           <Settings className="h-5 w-5" />
         </Button>
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="max-h-[90vh] overflow-y-auto rounded-t-3xl border-t border-border/60 bg-background/95 px-6 pb-10 pt-6 shadow-[0_-20px_60px_rgba(0,0,0,0.12)]"
+        className="reading-surface max-h-[90vh] overflow-y-auto rounded-t-3xl border-t px-6 pb-10 pt-6 shadow-[0_-20px_60px_rgba(0,0,0,0.12)]"
+        data-reading-theme={theme}
       >
         <div className="mx-auto mb-6 h-1 w-12 rounded-full bg-border/80" />
-        <SheetHeader className="flex-row items-center justify-between p-0">
+        <SheetHeader className="p-0">
           <SheetTitle className="font-display text-xl tracking-tight">
             Reading
           </SheetTitle>
-          <SheetClose asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="rounded-full px-4 text-xs uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
-            >
-              Done
-            </Button>
-          </SheetClose>
         </SheetHeader>
 
         <div className="mt-6 space-y-7">

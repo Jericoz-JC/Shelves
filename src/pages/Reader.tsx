@@ -95,10 +95,10 @@ export default function Reader() {
   }
 
   return (
-    <div className="h-dvh flex flex-col bg-background overflow-hidden">
+    <div className="h-dvh flex flex-col overflow-hidden" data-reading-theme={theme}>
       {/* Top bar - visible on toggle */}
       <header
-        className={`absolute top-0 left-0 right-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/50 transition-all duration-300 ${
+        className={`reading-surface absolute top-0 left-0 right-0 z-30 backdrop-blur-md border-b transition-all duration-300 ${
           showControls
             ? "translate-y-0 opacity-100"
             : "-translate-y-full opacity-0 pointer-events-none"
@@ -125,7 +125,7 @@ export default function Reader() {
       </header>
 
       {/* ePub viewer */}
-      <div className="flex-1 relative" data-reading-theme={theme}>
+      <div className="flex-1 relative">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center z-20 bg-background">
             <div className="space-y-4 w-64">
@@ -139,7 +139,7 @@ export default function Reader() {
         )}
 
         {indexing && !loading && (
-          <div className="absolute top-4 right-4 z-20 flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.2em] text-foreground/70 shadow-sm backdrop-blur">
+          <div className="reading-surface absolute top-4 right-4 z-20 flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-[0.2em] text-foreground/70 shadow-sm backdrop-blur">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent/60" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
@@ -165,7 +165,7 @@ export default function Reader() {
 
       {/* Bottom progress */}
       <footer
-        className={`bg-background/80 backdrop-blur-md border-t border-border/50 transition-all duration-300 ${
+        className={`reading-surface backdrop-blur-md border-t transition-all duration-300 ${
           showControls
             ? "translate-y-0 opacity-100"
             : "translate-y-full opacity-0 pointer-events-none"

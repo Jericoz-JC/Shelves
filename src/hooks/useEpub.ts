@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import type { Book, Rendition } from "epubjs";
 import { loadEpubFromArrayBuffer } from "@/lib/epub/epubLoader";
 import { IndexedDBService } from "@/lib/db/indexedDB";
-import { getThemeCSS, type ReadingTheme } from "@/lib/theme/readingThemes";
+import { getThemeCSS, READING_THEMES, type ReadingTheme } from "@/lib/theme/readingThemes";
 
 interface UseEpubOptions {
   bookHash?: string;
@@ -148,6 +148,12 @@ export function useEpub(
 
     const css = getThemeCSS(theme, fontSize, fontFamily);
     rendition.themes.default(css);
+    const config = READING_THEMES[theme];
+    rendition.themes.override("background-color", config.background, true);
+    rendition.themes.override("color", config.text, true);
+    rendition.themes.override("font-family", fontFamily, true);
+    rendition.themes.override("font-size", `${fontSize}px`, true);
+    rendition.themes.override("line-height", "1.7", true);
     rendition.views().forEach((view: { render: () => void }) => view.render());
   }, [rendition, theme, fontSize, fontFamily]);
 
