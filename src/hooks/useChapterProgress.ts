@@ -68,11 +68,18 @@ export function useChapterProgress(
       const nextChapter = chapters[chapterIndex + 1];
       const endCfi = nextChapter?.cfiBase;
 
+      const safePercentFromCfi = (cfi?: string) => {
+        if (!book.locations || !cfi || typeof cfi !== "string") return null;
+        try {
+          return book.locations.percentageFromCfi(cfi);
+        } catch {
+          return null;
+        }
+      };
+
       if (book.locations && startCfi) {
-        const startPercent = book.locations.percentageFromCfi(startCfi);
-        const endPercent = endCfi
-          ? book.locations.percentageFromCfi(endCfi)
-          : 1;
+        const startPercent = safePercentFromCfi(startCfi);
+        const endPercent = endCfi ? safePercentFromCfi(endCfi) : 1;
 
         if (
           startPercent !== null &&

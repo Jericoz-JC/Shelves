@@ -5,10 +5,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Book } from "epubjs";
 import type { ChapterItem } from "@/hooks/useChapters";
+import type { ReadingTheme } from "@/lib/theme/readingThemes";
 
 interface ReaderChapterSheetProps {
   book: Book | null;
   chapters: ChapterItem[];
+  theme: ReadingTheme;
   onNavigate: (target: string) => void;
 }
 
@@ -23,6 +25,7 @@ function stripText(text: string) {
 export function ReaderChapterSheet({
   book,
   chapters,
+  theme,
   onNavigate,
 }: ReaderChapterSheetProps) {
   const [open, setOpen] = useState(false);
@@ -52,7 +55,7 @@ export function ReaderChapterSheet({
           (contents as Document);
         const rawText = doc?.body?.textContent ?? doc?.textContent ?? "";
         const text = stripText(rawText);
-        const snippet = text.slice(0, 260);
+        const snippet = text.length > 0 ? text.slice(0, 260) : "Preview unavailable.";
         setPreviewCache((prev) => ({ ...prev, [chapter.href]: snippet }));
       } finally {
         section.unload();
@@ -85,6 +88,7 @@ export function ReaderChapterSheet({
       <SheetContent
         side="top"
         className="reading-surface border-b border-[color:var(--reading-border)] px-6 pb-6 pt-5"
+        data-reading-theme={theme}
       >
         <SheetHeader className="p-0">
           <SheetTitle className="font-display text-xl tracking-tight">
@@ -92,12 +96,12 @@ export function ReaderChapterSheet({
           </SheetTitle>
         </SheetHeader>
         <div className="mt-4 flex items-center gap-2 rounded-full border border-[color:var(--reading-border)] bg-[color:var(--reading-surface-muted)] px-3 py-2 text-sm">
-          <Search className="h-4 w-4 text-muted-foreground" />
+          <Search className="h-4 w-4 text-[color:var(--reading-text)]/60" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search chapters"
-            className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="w-full bg-transparent text-sm text-[color:var(--reading-text)] outline-none placeholder:text-[color:var(--reading-text)]/50"
           />
         </div>
         <ScrollArea className="mt-4 h-[60vh] pr-3">
@@ -119,22 +123,24 @@ export function ReaderChapterSheet({
                   }}
                   className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
                     isActive
-                      ? "border-[color:var(--reading-accent)] bg-[color:var(--reading-surface-muted)]"
-                      : "border-[color:var(--reading-border)] hover:bg-[color:var(--reading-surface-muted)]"
+                      ? "border-[color:var(--reading-accent)] bg-[color:var(--reading-surface-muted)] shadow-[0_12px_30px_rgba(0,0,0,0.12)]"
+                      : "border-[color:var(--reading-border)] bg-[color:var(--reading-surface)] hover:bg-[color:var(--reading-surface-muted)]"
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-display text-base">{chapter.label}</span>
-                    <span className="text-[0.65rem] uppercase tracking-[0.2em] text-muted-foreground">
+                    <span className="font-display text-base text-[color:var(--reading-text)]">
+                      {chapter.label}
+                    </span>
+                    <span className="text-[0.65rem] uppercase tracking-[0.2em] text-[color:var(--reading-text)]/50">
                       {isActive ? "Tap again" : "Preview"}
                     </span>
                   </div>
                   {preview ? (
-                    <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
+                    <p className="mt-2 text-sm text-[color:var(--reading-text)]/70 line-clamp-2">
                       {preview}
                     </p>
                   ) : (
-                    <p className="mt-2 text-xs text-muted-foreground">
+                    <p className="mt-2 text-xs text-[color:var(--reading-text)]/50">
                       {isActive ? "Loading preview…" : "Tap to preview"}
                     </p>
                   )}
