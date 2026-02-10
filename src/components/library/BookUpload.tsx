@@ -19,18 +19,23 @@ export function BookUpload({ onUploadComplete }: BookUploadProps) {
     if (!file) return;
 
     setUploading(true);
+    let book: Awaited<ReturnType<typeof loadEpubFromFile>>["book"] | null = null;
     try {
-      const { book, arrayBuffer } = await loadEpubFromFile(file);
+      const loaded = await loadEpubFromFile(file);
+      book = loaded.book;
+      const arrayBuffer = loaded.arrayBuffer;
       const fileHash = await hashFile(arrayBuffer);
       const epubMeta = await extractMetadata(book);
       const metadata = toBookMetadata(epubMeta, fileHash, file.size);
 
       await IndexedDBService.storeBook(fileHash, arrayBuffer, metadata);
-      book.destroy();
       onUploadComplete();
     } catch (err) {
       console.error("Failed to upload book:", err);
     } finally {
+      if (book) {
+        book.destroy();
+      }
       setUploading(false);
       if (inputRef.current) inputRef.current.value = "";
     }

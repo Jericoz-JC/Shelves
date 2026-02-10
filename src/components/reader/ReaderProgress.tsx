@@ -5,7 +5,8 @@ interface ReaderProgressProps {
 }
 
 export function ReaderProgress({ percentage }: ReaderProgressProps) {
-  const displayPercent = Math.round(percentage * 100);
+  const safePercentage = Number.isFinite(percentage) ? percentage : 0;
+  const displayPercent = Math.round(safePercentage * 100);
 
   return (
     <div className="flex items-center gap-3 px-4 py-2">

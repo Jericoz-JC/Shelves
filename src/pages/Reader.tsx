@@ -26,7 +26,7 @@ export default function Reader() {
   // Reading preferences (stored in state for now, Convex later)
   const [theme, setTheme] = useState<ReadingTheme>("paper");
   const [fontSize, setFontSize] = useState(FONT_SIZE_DEFAULT);
-  const [fontFamily, setFontFamily] = useState(FONT_FAMILIES[0].value);
+  const [fontFamily, setFontFamily] = useState<string>(FONT_FAMILIES[0].value);
 
   const { rendition, loading, error, viewerRef, goNext, goPrev } = useEpub(
     arrayBuffer,
@@ -59,7 +59,20 @@ export default function Reader() {
   // Keyboard navigation
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight" || e.key === " ") goNext();
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.key === "ArrowRight" || e.key === " ") {
+        if (e.key === " ") e.preventDefault();
+        goNext();
+      }
       if (e.key === "ArrowLeft") goPrev();
       if (e.key === "Escape") setShowControls(false);
     };
@@ -80,7 +93,7 @@ export default function Reader() {
 
   return (
     <div className="h-dvh flex flex-col bg-background overflow-hidden">
-      {/* Top bar — visible on toggle */}
+      {/* Top bar - visible on toggle */}
       <header
         className={`absolute top-0 left-0 right-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/50 transition-all duration-300 ${
           showControls
@@ -132,7 +145,7 @@ export default function Reader() {
         {/* Center tap zone to toggle controls */}
         <button
           onClick={handleCenterTap}
-          className="absolute top-0 left-1/3 w-1/3 h-full z-10"
+          className="absolute top-0 left-[40%] w-[20%] h-full z-10"
           aria-label="Toggle controls"
         />
       </div>

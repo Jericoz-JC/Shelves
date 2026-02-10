@@ -1,4 +1,4 @@
-import { Settings, Minus, Plus, Sun, Moon, BookText, Leaf, Coffee } from "lucide-react";
+import { Settings, Minus, Plus, Sun, Moon, Leaf, Coffee } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,

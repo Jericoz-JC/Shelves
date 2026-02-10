@@ -8,21 +8,6 @@ import {
   type BookProgress,
 } from "./schema";
 
-interface ShelvesDB {
-  [STORES.BOOKS]: {
-    key: string;
-    value: StoredBook;
-  };
-  [STORES.METADATA]: {
-    key: string;
-    value: BookMetadata;
-  };
-  [STORES.PROGRESS]: {
-    key: string;
-    value: BookProgress;
-  };
-}
-
 function getDB(): Promise<IDBPDatabase> {
   return openDB(DB_NAME, DB_VERSION, {
     upgrade(db) {

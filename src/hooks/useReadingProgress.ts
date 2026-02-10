@@ -16,11 +16,13 @@ export function useReadingProgress({
 }: UseReadingProgressOptions) {
   const [progress, setProgress] = useState<BookProgress | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasRestoredRef = useRef(false);
 
   // Load saved progress on mount
   useEffect(() => {
     if (!bookHash) return;
 
+    hasRestoredRef.current = false;
     IndexedDBService.getProgress(bookHash).then((saved) => {
       if (saved) {
         setProgress(saved);
@@ -30,11 +32,10 @@ export function useReadingProgress({
 
   // Navigate to saved position when rendition + progress both ready
   useEffect(() => {
-    if (!rendition || !progress?.currentCFI) return;
+    if (!rendition || !progress?.currentCFI || hasRestoredRef.current) return;
+    hasRestoredRef.current = true;
     rendition.display(progress.currentCFI);
-    // Only run once on initial load
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rendition]);
+  }, [rendition, progress]);
 
   const saveProgress = useCallback(
     (newProgress: BookProgress) => {
@@ -54,10 +55,12 @@ export function useReadingProgress({
     const onRelocated = (location: {
       start: { cfi: string; percentage: number; displayed: { page: number; total: number } };
     }) => {
+      const rawPercentage = location.start.percentage;
+      const safePercentage = Number.isFinite(rawPercentage) ? rawPercentage : 0;
       const newProgress: BookProgress = {
         bookHash,
         currentCFI: location.start.cfi,
-        percentage: location.start.percentage,
+        percentage: Math.min(Math.max(safePercentage, 0), 1),
         lastReadAt: Date.now(),
         chapter: null,
       };
