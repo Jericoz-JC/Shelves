@@ -28,10 +28,13 @@ export default function Reader() {
   const [fontSize, setFontSize] = useState(FONT_SIZE_DEFAULT);
   const [fontFamily, setFontFamily] = useState<string>(FONT_FAMILIES[0].value);
 
-  const { rendition, loading, error, viewerRef, goNext, goPrev } = useEpub(
-    arrayBuffer,
-    { theme, fontSize, fontFamily }
-  );
+  const { rendition, loading, indexing, error, viewerRef, goNext, goPrev } =
+    useEpub(arrayBuffer, {
+      bookHash: bookId ?? undefined,
+      theme,
+      fontSize,
+      fontFamily,
+    });
 
   const { progress } = useReadingProgress({
     bookHash: bookId ?? null,
@@ -132,6 +135,16 @@ export default function Reader() {
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-3/6" />
             </div>
+          </div>
+        )}
+
+        {indexing && !loading && (
+          <div className="absolute top-4 right-4 z-20 flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.2em] text-foreground/70 shadow-sm backdrop-blur">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent/60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+            </span>
+            Indexing
           </div>
         )}
 

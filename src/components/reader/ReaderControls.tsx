@@ -1,4 +1,4 @@
-import { Settings, Minus, Plus, Sun, Moon, Leaf, Coffee } from "lucide-react";
+import { Settings, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -25,13 +25,6 @@ interface ReaderControlsProps {
   onFontFamilyChange: (family: string) => void;
 }
 
-const themeIcons: Record<ReadingTheme, React.ReactNode> = {
-  paper: <Sun className="h-4 w-4" />,
-  night: <Moon className="h-4 w-4" />,
-  focus: <Leaf className="h-4 w-4" />,
-  sepia: <Coffee className="h-4 w-4" />,
-};
-
 export function ReaderControls({
   theme,
   fontSize,
@@ -46,48 +39,60 @@ export function ReaderControls({
         <Button
           variant="ghost"
           size="icon"
-          className="h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm shadow-md"
+          className="h-10 w-10 rounded-full bg-background/80 backdrop-blur-sm shadow-md ring-1 ring-border/50"
         >
           <Settings className="h-5 w-5" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="rounded-t-2xl pb-8">
+      <SheetContent
+        side="bottom"
+        className="rounded-t-3xl border-t border-border/60 bg-background/95 px-6 pb-10 pt-6 shadow-[0_-20px_60px_rgba(0,0,0,0.12)]"
+      >
+        <div className="mx-auto mb-6 h-1 w-12 rounded-full bg-border/80" />
         <SheetHeader>
-          <SheetTitle className="font-display text-lg">
-            Reading Settings
+          <SheetTitle className="font-display text-xl tracking-tight">
+            Reading
           </SheetTitle>
         </SheetHeader>
 
-        <div className="mt-6 space-y-6">
+        <div className="mt-6 space-y-7">
           {/* Theme Selection */}
           <div>
-            <p className="text-sm font-medium text-muted-foreground mb-3">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-muted-foreground mb-3">
               Theme
             </p>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               {(Object.keys(READING_THEMES) as ReadingTheme[]).map((t) => (
                 <button
                   key={t}
                   onClick={() => onThemeChange(t)}
-                  className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                  className={`group relative overflow-hidden rounded-2xl border px-4 py-3 text-left transition-all ${
                     theme === t
-                      ? "border-accent bg-accent/10"
-                      : "border-transparent bg-secondary hover:bg-secondary/80"
+                      ? "border-accent/70 bg-accent/10 shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
+                      : "border-border/60 bg-secondary/40 hover:bg-secondary/70"
                   }`}
                 >
                   <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    className="h-12 w-full rounded-xl border border-black/5 shadow-inner"
                     style={{
                       backgroundColor: READING_THEMES[t].background,
-                      color: READING_THEMES[t].text,
-                      border: `1px solid ${READING_THEMES[t].text}20`,
                     }}
-                  >
-                    {themeIcons[t]}
+                  />
+                  <div className="mt-3 flex items-center justify-between">
+                    <span className="text-sm font-medium">
+                      {READING_THEMES[t].label}
+                    </span>
+                    <span
+                      className="text-[10px] uppercase tracking-[0.2em]"
+                      style={{ color: READING_THEMES[t].accent }}
+                    >
+                      Aa
+                    </span>
                   </div>
-                  <span className="text-xs font-medium">
-                    {READING_THEMES[t].label}
-                  </span>
+                  <div
+                    className="mt-2 h-1 w-full rounded-full"
+                    style={{ backgroundColor: READING_THEMES[t].accent }}
+                  />
                 </button>
               ))}
             </div>
@@ -97,14 +102,14 @@ export function ReaderControls({
 
           {/* Font Size */}
           <div>
-            <p className="text-sm font-medium text-muted-foreground mb-3">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-muted-foreground mb-3">
               Font Size
             </p>
             <div className="flex items-center gap-4">
               <Button
                 variant="outline"
                 size="icon"
-                className="h-10 w-10 rounded-full"
+                className="h-10 w-10 rounded-full border-border/70"
                 onClick={() =>
                   onFontSizeChange(Math.max(FONT_SIZE_MIN, fontSize - 1))
                 }
@@ -113,13 +118,13 @@ export function ReaderControls({
                 <Minus className="h-4 w-4" />
               </Button>
               <div className="flex-1 text-center">
-                <span className="text-2xl font-display">{fontSize}</span>
+                <span className="text-3xl font-display">{fontSize}</span>
                 <span className="text-sm text-muted-foreground ml-1">px</span>
               </div>
               <Button
                 variant="outline"
                 size="icon"
-                className="h-10 w-10 rounded-full"
+                className="h-10 w-10 rounded-full border-border/70"
                 onClick={() =>
                   onFontSizeChange(Math.min(FONT_SIZE_MAX, fontSize + 1))
                 }
@@ -134,25 +139,28 @@ export function ReaderControls({
 
           {/* Font Family */}
           <div>
-            <p className="text-sm font-medium text-muted-foreground mb-3">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-muted-foreground mb-3">
               Typeface
             </p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-3">
               {FONT_FAMILIES.map((f) => (
                 <button
                   key={f.value}
                   onClick={() => onFontFamilyChange(f.value)}
-                  className={`p-3 rounded-xl border-2 text-left transition-all ${
+                  className={`rounded-2xl border px-4 py-3 text-left transition-all ${
                     fontFamily === f.value
-                      ? "border-accent bg-accent/10"
-                      : "border-transparent bg-secondary hover:bg-secondary/80"
+                      ? "border-accent/70 bg-accent/10 shadow-[0_6px_20px_rgba(0,0,0,0.08)]"
+                      : "border-border/60 bg-secondary/40 hover:bg-secondary/70"
                   }`}
                 >
-                  <span
-                    className="text-base"
-                    style={{ fontFamily: f.value }}
-                  >
+                  <span className="block text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+                    Typeface
+                  </span>
+                  <span className="block text-lg" style={{ fontFamily: f.value }}>
                     {f.label}
+                  </span>
+                  <span className="mt-1 block text-sm text-muted-foreground" style={{ fontFamily: f.value }}>
+                    The quick brown fox
                   </span>
                 </button>
               ))}

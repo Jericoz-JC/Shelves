@@ -16,6 +16,12 @@ export interface BookProgress {
   chapter: string | null;
 }
 
+export interface BookLocations {
+  bookHash: string;
+  locations: string;
+  createdAt: number;
+}
+
 export interface StoredBook {
   fileHash: string;
   data: ArrayBuffer;

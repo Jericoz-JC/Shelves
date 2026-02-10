@@ -1,27 +1,27 @@
 /* Reading theme CSS custom properties — applied to the reader container */
 
 [data-reading-theme="paper"] {
-  --reading-bg: #FEFCF8;
-  --reading-text: #2D2D2D;
-  --reading-accent: #C17F3E;
+  --reading-bg: #FBF7F1;
+  --reading-text: #2A241C;
+  --reading-accent: #C07A3D;
 }
 
 [data-reading-theme="night"] {
-  --reading-bg: #1A1A1A;
-  --reading-text: #E0E0E0;
-  --reading-accent: #D4A574;
+  --reading-bg: #171614;
+  --reading-text: #EAE3DA;
+  --reading-accent: #C99B63;
 }
 
 [data-reading-theme="focus"] {
-  --reading-bg: #F5F5F0;
-  --reading-text: #3A3A3A;
-  --reading-accent: #6B8F71;
+  --reading-bg: #F3F1EA;
+  --reading-text: #3A332B;
+  --reading-accent: #5C8062;
 }
 
 [data-reading-theme="sepia"] {
-  --reading-bg: #F4ECD8;
-  --reading-text: #5B4636;
-  --reading-accent: #8B6914;
+  --reading-bg: #F2E6D1;
+  --reading-text: #5A4330;
+  --reading-accent: #8B6A2B;
 }
 
 .reader-container {

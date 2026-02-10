@@ -6,6 +6,7 @@ import {
   type BookMetadata,
   type StoredBook,
   type BookProgress,
+  type BookLocations,
 } from "./schema";
 
 function getDB(): Promise<IDBPDatabase> {
@@ -19,6 +20,9 @@ function getDB(): Promise<IDBPDatabase> {
       }
       if (!db.objectStoreNames.contains(STORES.PROGRESS)) {
         db.createObjectStore(STORES.PROGRESS, { keyPath: "bookHash" });
+      }
+      if (!db.objectStoreNames.contains(STORES.LOCATIONS)) {
+        db.createObjectStore(STORES.LOCATIONS, { keyPath: "bookHash" });
       }
     },
   });
@@ -52,13 +56,14 @@ export const IndexedDBService = {
   async deleteBook(fileHash: string): Promise<void> {
     const db = await getDB();
     const tx = db.transaction(
-      [STORES.BOOKS, STORES.METADATA, STORES.PROGRESS],
+      [STORES.BOOKS, STORES.METADATA, STORES.PROGRESS, STORES.LOCATIONS],
       "readwrite"
     );
     await Promise.all([
       tx.objectStore(STORES.BOOKS).delete(fileHash),
       tx.objectStore(STORES.METADATA).delete(fileHash),
       tx.objectStore(STORES.PROGRESS).delete(fileHash),
+      tx.objectStore(STORES.LOCATIONS).delete(fileHash),
       tx.done,
     ]);
   },
@@ -73,5 +78,23 @@ export const IndexedDBService = {
     return db.get(STORES.PROGRESS, bookHash) as Promise<
       BookProgress | undefined
     >;
+  },
+
+  async saveLocations(bookHash: string, locations: string): Promise<void> {
+    const db = await getDB();
+    const payload: BookLocations = {
+      bookHash,
+      locations,
+      createdAt: Date.now(),
+    };
+    await db.put(STORES.LOCATIONS, payload);
+  },
+
+  async getLocations(bookHash: string): Promise<string | undefined> {
+    const db = await getDB();
+    const record = (await db.get(STORES.LOCATIONS, bookHash)) as
+      | BookLocations
+      | undefined;
+    return record?.locations;
   },
 };
