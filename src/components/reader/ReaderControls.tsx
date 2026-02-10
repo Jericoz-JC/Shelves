@@ -2,6 +2,7 @@ import { Settings, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -46,13 +47,22 @@ export function ReaderControls({
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="rounded-t-3xl border-t border-border/60 bg-background/95 px-6 pb-10 pt-6 shadow-[0_-20px_60px_rgba(0,0,0,0.12)]"
+        className="max-h-[90vh] overflow-y-auto rounded-t-3xl border-t border-border/60 bg-background/95 px-6 pb-10 pt-6 shadow-[0_-20px_60px_rgba(0,0,0,0.12)]"
       >
         <div className="mx-auto mb-6 h-1 w-12 rounded-full bg-border/80" />
-        <SheetHeader>
+        <SheetHeader className="flex-row items-center justify-between p-0">
           <SheetTitle className="font-display text-xl tracking-tight">
             Reading
           </SheetTitle>
+          <SheetClose asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="rounded-full px-4 text-xs uppercase tracking-[0.2em] text-muted-foreground hover:text-foreground"
+            >
+              Done
+            </Button>
+          </SheetClose>
         </SheetHeader>
 
         <div className="mt-6 space-y-7">
