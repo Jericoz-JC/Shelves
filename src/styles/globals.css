@@ -1,0 +1,134 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "./typography.css";
+@import "./reading-themes.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-reading: Georgia, 'Times New Roman', serif;
+  --font-ui: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Shelves - warm luxury palette */
+:root {
+  --radius: 0.625rem;
+  --background: #FEFCF8;
+  --foreground: #2D2318;
+  --card: #FFFDF7;
+  --card-foreground: #2D2318;
+  --popover: #FFFDF7;
+  --popover-foreground: #2D2318;
+  --primary: #2D2318;
+  --primary-foreground: #FEFCF8;
+  --secondary: #F5F0E8;
+  --secondary-foreground: #2D2318;
+  --muted: #F5F0E8;
+  --muted-foreground: #8A7E72;
+  --accent: #C17F3E;
+  --accent-foreground: #FEFCF8;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: #E8E0D4;
+  --input: #E8E0D4;
+  --ring: #C17F3E;
+  --chart-1: #C17F3E;
+  --chart-2: #6B8F71;
+  --chart-3: #8B6914;
+  --chart-4: #A0522D;
+  --chart-5: #D4A574;
+  --sidebar: #FAF7F0;
+  --sidebar-foreground: #2D2318;
+  --sidebar-primary: #2D2318;
+  --sidebar-primary-foreground: #FEFCF8;
+  --sidebar-accent: #F5F0E8;
+  --sidebar-accent-foreground: #2D2318;
+  --sidebar-border: #E8E0D4;
+  --sidebar-ring: #C17F3E;
+}
+
+/* App dark mode — rich dark tones, not pure black */
+.dark {
+  --background: #1C1917;
+  --foreground: #F5F0E8;
+  --card: #252220;
+  --card-foreground: #F5F0E8;
+  --popover: #252220;
+  --popover-foreground: #F5F0E8;
+  --primary: #F5F0E8;
+  --primary-foreground: #1C1917;
+  --secondary: #302C28;
+  --secondary-foreground: #F5F0E8;
+  --muted: #302C28;
+  --muted-foreground: #A09890;
+  --accent: #D4A574;
+  --accent-foreground: #1C1917;
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: rgba(245, 240, 232, 0.1);
+  --input: rgba(245, 240, 232, 0.15);
+  --ring: #D4A574;
+  --chart-1: #D4A574;
+  --chart-2: #8FBF96;
+  --chart-3: #C49B4A;
+  --chart-4: #C07050;
+  --chart-5: #E0C0A0;
+  --sidebar: #252220;
+  --sidebar-foreground: #F5F0E8;
+  --sidebar-primary: #D4A574;
+  --sidebar-primary-foreground: #1C1917;
+  --sidebar-accent: #302C28;
+  --sidebar-accent-foreground: #F5F0E8;
+  --sidebar-border: rgba(245, 240, 232, 0.1);
+  --sidebar-ring: #D4A574;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}

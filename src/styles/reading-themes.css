@@ -1,0 +1,31 @@
+/* Reading theme CSS custom properties — applied to the reader container */
+
+[data-reading-theme="paper"] {
+  --reading-bg: #FEFCF8;
+  --reading-text: #2D2D2D;
+  --reading-accent: #C17F3E;
+}
+
+[data-reading-theme="night"] {
+  --reading-bg: #1A1A1A;
+  --reading-text: #E0E0E0;
+  --reading-accent: #D4A574;
+}
+
+[data-reading-theme="focus"] {
+  --reading-bg: #F5F5F0;
+  --reading-text: #3A3A3A;
+  --reading-accent: #6B8F71;
+}
+
+[data-reading-theme="sepia"] {
+  --reading-bg: #F4ECD8;
+  --reading-text: #5B4636;
+  --reading-accent: #8B6914;
+}
+
+.reader-container {
+  background: var(--reading-bg);
+  color: var(--reading-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
