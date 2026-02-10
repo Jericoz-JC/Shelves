@@ -22,6 +22,16 @@ export interface BookLocations {
   createdAt: number;
 }
 
+export interface ReaderNote {
+  id: string;
+  bookHash: string;
+  cfi: string;
+  text: string;
+  createdAt: number;
+  updatedAt: number;
+  percentage?: number | null;
+}
+
 export interface StoredBook {
   fileHash: string;
   data: ArrayBuffer;

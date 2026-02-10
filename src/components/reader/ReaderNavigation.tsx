@@ -1,16 +1,44 @@
+import type { MouseEvent } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ReaderNavigationProps {
   onPrev: () => void;
   onNext: () => void;
+  onAddNote?: (side: "left" | "right") => void;
 }
 
-export function ReaderNavigation({ onPrev, onNext }: ReaderNavigationProps) {
+const EDGE_NOTE_PX = 24;
+
+export function ReaderNavigation({ onPrev, onNext, onAddNote }: ReaderNavigationProps) {
+  const handlePrevClick = (event: MouseEvent<HTMLButtonElement>) => {
+    if (onAddNote) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const offset = event.clientX - rect.left;
+      if (offset <= EDGE_NOTE_PX) {
+        onAddNote("left");
+        return;
+      }
+    }
+    onPrev();
+  };
+
+  const handleNextClick = (event: MouseEvent<HTMLButtonElement>) => {
+    if (onAddNote) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const offset = rect.right - event.clientX;
+      if (offset <= EDGE_NOTE_PX) {
+        onAddNote("right");
+        return;
+      }
+    }
+    onNext();
+  };
+
   return (
     <>
       {/* Left tap zone */}
       <button
-        onClick={onPrev}
+        onClick={handlePrevClick}
         className="absolute left-0 top-0 w-[15%] h-full z-10 flex items-center justify-start pl-2 opacity-0 hover:opacity-100 transition-opacity duration-200"
         aria-label="Previous page"
       >
@@ -21,7 +49,7 @@ export function ReaderNavigation({ onPrev, onNext }: ReaderNavigationProps) {
 
       {/* Right tap zone */}
       <button
-        onClick={onNext}
+        onClick={handleNextClick}
         className="absolute right-0 top-0 w-[15%] h-full z-10 flex items-center justify-end pr-2 opacity-0 hover:opacity-100 transition-opacity duration-200"
         aria-label="Next page"
       >

@@ -7,6 +7,7 @@ import {
   type StoredBook,
   type BookProgress,
   type BookLocations,
+  type ReaderNote,
 } from "./schema";
 
 function getDB(): Promise<IDBPDatabase> {
@@ -23,6 +24,10 @@ function getDB(): Promise<IDBPDatabase> {
       }
       if (!db.objectStoreNames.contains(STORES.LOCATIONS)) {
         db.createObjectStore(STORES.LOCATIONS, { keyPath: "bookHash" });
+      }
+      if (!db.objectStoreNames.contains(STORES.NOTES)) {
+        const store = db.createObjectStore(STORES.NOTES, { keyPath: "id" });
+        store.createIndex("by_book", "bookHash");
       }
     },
   });
@@ -56,7 +61,13 @@ export const IndexedDBService = {
   async deleteBook(fileHash: string): Promise<void> {
     const db = await getDB();
     const tx = db.transaction(
-      [STORES.BOOKS, STORES.METADATA, STORES.PROGRESS, STORES.LOCATIONS],
+      [
+        STORES.BOOKS,
+        STORES.METADATA,
+        STORES.PROGRESS,
+        STORES.LOCATIONS,
+        STORES.NOTES,
+      ],
       "readwrite"
     );
     await Promise.all([
@@ -64,8 +75,13 @@ export const IndexedDBService = {
       tx.objectStore(STORES.METADATA).delete(fileHash),
       tx.objectStore(STORES.PROGRESS).delete(fileHash),
       tx.objectStore(STORES.LOCATIONS).delete(fileHash),
-      tx.done,
     ]);
+    const notesStore = tx.objectStore(STORES.NOTES);
+    if (notesStore.indexNames.contains("by_book")) {
+      const keys = await notesStore.index("by_book").getAllKeys(fileHash);
+      await Promise.all(keys.map((key) => notesStore.delete(key)));
+    }
+    await tx.done;
   },
 
   async saveProgress(progress: BookProgress): Promise<void> {
@@ -96,5 +112,24 @@ export const IndexedDBService = {
       | BookLocations
       | undefined;
     return record?.locations;
+  },
+
+  async getNotes(bookHash: string): Promise<ReaderNote[]> {
+    const db = await getDB();
+    const store = db.transaction(STORES.NOTES).objectStore(STORES.NOTES);
+    if (store.indexNames.contains("by_book")) {
+      return (await store.index("by_book").getAll(bookHash)) as ReaderNote[];
+    }
+    return (await store.getAll()) as ReaderNote[];
+  },
+
+  async saveNote(note: ReaderNote): Promise<void> {
+    const db = await getDB();
+    await db.put(STORES.NOTES, note);
+  },
+
+  async deleteNote(noteId: string): Promise<void> {
+    const db = await getDB();
+    await db.delete(STORES.NOTES, noteId);
   },
 };
