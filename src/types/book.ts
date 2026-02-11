@@ -22,6 +22,12 @@ export interface BookLocations {
   createdAt: number;
 }
 
+export interface BookSettings {
+  bookHash: string;
+  disableBottomScrubber: boolean;
+  updatedAt: number;
+}
+
 export interface ReaderNote {
   id: string;
   bookHash: string;

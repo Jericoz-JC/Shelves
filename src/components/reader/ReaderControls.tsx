@@ -1,5 +1,6 @@
 import { Settings, Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Toggle } from "@/components/ui/toggle";
 import {
   Sheet,
   SheetContent,
@@ -20,18 +21,22 @@ interface ReaderControlsProps {
   theme: ReadingTheme;
   fontSize: number;
   fontFamily: string;
+  disableBottomScrubber: boolean;
   onThemeChange: (theme: ReadingTheme) => void;
   onFontSizeChange: (size: number) => void;
   onFontFamilyChange: (family: string) => void;
+  onDisableBottomScrubberChange: (disabled: boolean) => void;
 }
 
 export function ReaderControls({
   theme,
   fontSize,
   fontFamily,
+  disableBottomScrubber,
   onThemeChange,
   onFontSizeChange,
   onFontFamilyChange,
+  onDisableBottomScrubberChange,
 }: ReaderControlsProps) {
   return (
     <Sheet>
@@ -165,6 +170,33 @@ export function ReaderControls({
                   </span>
                 </button>
               ))}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Bottom Progress */}
+          <div>
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.3em] text-muted-foreground mb-3">
+              Bottom Progress
+            </p>
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/60 bg-secondary/40 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium">Show footer</p>
+                <p className="text-xs text-muted-foreground">
+                  Toggle the bottom progress panel for this book.
+                </p>
+              </div>
+              <Toggle
+                pressed={!disableBottomScrubber}
+                onPressedChange={(pressed) =>
+                  onDisableBottomScrubberChange(!pressed)
+                }
+                className="rounded-full px-4"
+                aria-label="Toggle bottom progress footer"
+              >
+                {disableBottomScrubber ? "Off" : "On"}
+              </Toggle>
             </div>
           </div>
         </div>

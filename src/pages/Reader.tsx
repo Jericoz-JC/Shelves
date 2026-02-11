@@ -8,6 +8,7 @@ import { useReadingProgress } from "@/hooks/useReadingProgress";
 import { useReadingSpeed } from "@/hooks/useReadingSpeed";
 import { useChapters } from "@/hooks/useChapters";
 import { useChapterProgress } from "@/hooks/useChapterProgress";
+import { useBookSettings } from "@/hooks/useBookSettings";
 import { ReaderControls } from "@/components/reader/ReaderControls";
 import { ReaderChapterSheet } from "@/components/reader/ReaderChapterSheet";
 import { ReaderNavigation } from "@/components/reader/ReaderNavigation";
@@ -45,6 +46,9 @@ export default function Reader() {
     bookHash: bookId ?? null,
     rendition,
   });
+
+  const { settings, saveSettings } = useBookSettings(bookId ?? null);
+  const disableBottomScrubber = settings?.disableBottomScrubber ?? false;
 
   const readingSpeed = useReadingSpeed(rendition);
   const chapters = useChapters(book);
@@ -117,7 +121,10 @@ export default function Reader() {
     locations.length() > 0;
 
   return (
-    <div className="h-dvh flex flex-col overflow-hidden" data-reading-theme={theme}>
+    <div
+      className="h-dvh flex flex-col overflow-hidden relative"
+      data-reading-theme={theme}
+    >
       {/* Top bar - visible on toggle */}
       <header
         className={`reading-surface absolute top-0 left-0 right-0 z-30 backdrop-blur-md border-b transition-all duration-300 ${
@@ -158,9 +165,13 @@ export default function Reader() {
               theme={theme}
               fontSize={fontSize}
               fontFamily={fontFamily}
+              disableBottomScrubber={disableBottomScrubber}
               onThemeChange={setTheme}
               onFontSizeChange={setFontSize}
               onFontFamilyChange={setFontFamily}
+              onDisableBottomScrubberChange={(disabled) => {
+                void saveSettings({ disableBottomScrubber: disabled });
+              }}
             />
           </div>
         </div>
@@ -207,23 +218,25 @@ export default function Reader() {
       </div>
 
       {/* Bottom progress */}
-      <footer
-        className={`reading-surface backdrop-blur-md border-t transition-all duration-300 ${
-          showControls
-            ? "translate-y-0 opacity-100"
-            : "translate-y-full opacity-0 pointer-events-none"
-        }`}
-      >
-        <ReaderProgress
-          percentage={progress?.percentage ?? 0}
-          chapterTitle={chapterProgress.currentChapter?.label ?? null}
-          chapterIndex={chapterProgress.chapterIndex}
-          totalChapters={chapterProgress.totalChapters}
-          chaptersRemaining={chapterProgress.chaptersRemaining}
-          chapterProgress={chapterProgress.chapterProgress}
-          etaMinutes={etaMinutes}
-        />
-      </footer>
+      {!disableBottomScrubber && (
+        <footer
+          className={`reading-surface absolute bottom-0 left-0 right-0 z-30 backdrop-blur-md border-t transition-all duration-300 ${
+            showControls
+              ? "translate-y-0 opacity-100"
+              : "translate-y-full opacity-0 pointer-events-none"
+          }`}
+        >
+          <ReaderProgress
+            percentage={progress?.percentage ?? 0}
+            chapterTitle={chapterProgress.currentChapter?.label ?? null}
+            chapterIndex={chapterProgress.chapterIndex}
+            totalChapters={chapterProgress.totalChapters}
+            chaptersRemaining={chapterProgress.chaptersRemaining}
+            chapterProgress={chapterProgress.chapterProgress}
+            etaMinutes={etaMinutes}
+          />
+        </footer>
+      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   type StoredBook,
   type BookProgress,
   type BookLocations,
+  type BookSettings,
   type ReaderNote,
 } from "./schema";
 
@@ -28,6 +29,9 @@ function getDB(): Promise<IDBPDatabase> {
       if (!db.objectStoreNames.contains(STORES.NOTES)) {
         const store = db.createObjectStore(STORES.NOTES, { keyPath: "id" });
         store.createIndex("by_book", "bookHash");
+      }
+      if (!db.objectStoreNames.contains(STORES.SETTINGS)) {
+        db.createObjectStore(STORES.SETTINGS, { keyPath: "bookHash" });
       }
     },
   });
@@ -67,6 +71,7 @@ export const IndexedDBService = {
         STORES.PROGRESS,
         STORES.LOCATIONS,
         STORES.NOTES,
+        STORES.SETTINGS,
       ],
       "readwrite"
     );
@@ -75,6 +80,7 @@ export const IndexedDBService = {
       tx.objectStore(STORES.METADATA).delete(fileHash),
       tx.objectStore(STORES.PROGRESS).delete(fileHash),
       tx.objectStore(STORES.LOCATIONS).delete(fileHash),
+      tx.objectStore(STORES.SETTINGS).delete(fileHash),
     ]);
     const notesStore = tx.objectStore(STORES.NOTES);
     if (notesStore.indexNames.contains("by_book")) {
@@ -112,6 +118,18 @@ export const IndexedDBService = {
       | BookLocations
       | undefined;
     return record?.locations;
+  },
+
+  async getBookSettings(bookHash: string): Promise<BookSettings | undefined> {
+    const db = await getDB();
+    return db.get(STORES.SETTINGS, bookHash) as Promise<
+      BookSettings | undefined
+    >;
+  },
+
+  async saveBookSettings(settings: BookSettings): Promise<void> {
+    const db = await getDB();
+    await db.put(STORES.SETTINGS, settings);
   },
 
   async getNotes(bookHash: string): Promise<ReaderNote[]> {

@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BookOpen } from "lucide-react";
 
 export default function Library() {
-  const { books, loading, refresh } = useLibrary();
+  const { books, loading, refresh, deleteBook } = useLibrary();
 
   return (
     <div className="min-h-screen bg-background">
@@ -47,7 +47,12 @@ export default function Library() {
         ) : (
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4 md:gap-6">
             {books.map((book, index) => (
-              <BookCard key={book.fileHash} book={book} index={index} />
+              <BookCard
+                key={book.fileHash}
+                book={book}
+                index={index}
+                onDelete={() => deleteBook(book.fileHash)}
+              />
             ))}
           </div>
         )}
