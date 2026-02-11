@@ -54,31 +54,30 @@ export function ReaderTimeline({
   const safePercentage = Number.isFinite(percentage) ? percentage : 0;
 
   return (
-    <div className="px-4 pb-3">
+    <div className="px-4 pb-4 pt-2">
       <div
         ref={barRef}
-        className={`relative h-2 w-full rounded-full ${
+        className={`relative h-3 w-full rounded-full reading-progress ${
           disabled ? "opacity-50" : "cursor-pointer"
         }`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
       >
-        <div className="absolute inset-0 rounded-full reading-progress" />
         <div
-          className="absolute top-0 h-2 rounded-full bg-[color:var(--reading-accent)]"
+          className="absolute inset-y-0 left-0 rounded-l-full rounded-r-sm bg-[color:var(--reading-accent)]"
           style={{ width: `${safePercentage * 100}%` }}
         />
         <div
-          className="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-[color:var(--reading-accent)] shadow-sm"
-          style={{ left: `${safePercentage * 100}%`, transform: "translate(-50%, -50%)" }}
+          className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[color:var(--reading-accent)] shadow-sm"
+          style={{ left: `${safePercentage * 100}%` }}
         />
         {markers.map((marker) => (
           <div
             key={marker.id}
             title={marker.title}
-            className="absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[color:var(--reading-text)]/60"
-            style={{ left: `${marker.percentage * 100}%`, transform: "translate(-50%, -50%)" }}
+            className="absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[color:var(--reading-text)]/60"
+            style={{ left: `${marker.percentage * 100}%` }}
           />
         ))}
       </div>

@@ -220,7 +220,7 @@ export default function Reader() {
       {/* Bottom progress */}
       {!disableBottomScrubber && (
         <footer
-          className={`reading-surface absolute bottom-0 left-0 right-0 z-30 backdrop-blur-md border-t transition-all duration-300 ${
+          className={`reading-surface absolute bottom-0 left-0 right-0 z-30 backdrop-blur-md border-t pb-[calc(env(safe-area-inset-bottom,0px)+8px)] transition-all duration-300 ${
             showControls
               ? "translate-y-0 opacity-100"
               : "translate-y-full opacity-0 pointer-events-none"

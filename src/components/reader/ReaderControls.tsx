@@ -51,7 +51,7 @@ export function ReaderControls({
       </SheetTrigger>
       <SheetContent
         side="bottom"
-        className="reading-surface max-h-[90vh] overflow-y-auto rounded-t-3xl border-t px-6 pb-10 pt-6 shadow-[0_-20px_60px_rgba(0,0,0,0.12)]"
+        className="reading-surface max-h-[90vh] overflow-y-auto rounded-t-3xl border-t px-6 pt-6 pb-[calc(env(safe-area-inset-bottom,0px)+2.5rem+8px)] shadow-[0_-20px_60px_rgba(0,0,0,0.12)]"
         data-reading-theme={theme}
       >
         <div className="mx-auto mb-6 h-1 w-12 rounded-full bg-border/80" />
