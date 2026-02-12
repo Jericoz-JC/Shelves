@@ -1,24 +1,16 @@
 import { PenSquare } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 
 interface SocialComposeButtonProps {
   onClick: () => void;
-  navVisible?: boolean;
+  navOffset?: number;
 }
 
-export function SocialComposeButton({ onClick, navVisible = true }: SocialComposeButtonProps) {
-  const prefersReducedMotion = useReducedMotion();
-
+export function SocialComposeButton({ onClick, navOffset = 0 }: SocialComposeButtonProps) {
   return (
-    <motion.div
-      className="fixed bottom-20 right-4 z-40 md:hidden"
-      animate={{ y: navVisible ? 0 : 60 }}
-      transition={{
-        type: "tween",
-        duration: prefersReducedMotion ? 0 : 0.3,
-        ease: [0.25, 0.1, 0.25, 1],
-      }}
+    <div
+      className="fixed bottom-20 right-4 z-40 will-change-transform md:hidden"
+      style={{ transform: `translateY(${navOffset}px)` }}
     >
       <Button
         type="button"
@@ -29,6 +21,6 @@ export function SocialComposeButton({ onClick, navVisible = true }: SocialCompos
       >
         <PenSquare className="h-5 w-5" />
       </Button>
-    </motion.div>
+    </div>
   );
 }
