@@ -1,0 +1,182 @@
+import { useState, useEffect } from "react";
+import { MessageCircle, Repeat2, Heart, Share, Check, Bookmark } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface ChronicleActionsProps {
+  replyCount: number;
+  repostCount: number;
+  likeCount: number;
+  isLiked: boolean;
+  isReposted: boolean;
+  text: string;
+  isBookmarked: boolean;
+  onLike: () => void;
+  onRepost: () => void;
+  onReplyToggle: () => void;
+  onBookmark: () => void;
+}
+
+export function ChronicleActions({
+  replyCount,
+  repostCount,
+  likeCount,
+  isLiked,
+  isReposted,
+  text,
+  isBookmarked,
+  onLike,
+  onRepost,
+  onReplyToggle,
+  onBookmark,
+}: ChronicleActionsProps) {
+  const [copied, setCopied] = useState(false);
+  const [shareFailed, setShareFailed] = useState(false);
+
+  const replyAriaLabel =
+    replyCount > 0
+      ? `Reply, ${replyCount} ${replyCount === 1 ? "reply" : "replies"}`
+      : "Reply";
+  const repostAriaLabel =
+    repostCount > 0
+      ? `Repost, ${repostCount} ${repostCount === 1 ? "repost" : "reposts"}`
+      : "Repost";
+  const likeAriaLabel =
+    likeCount > 0
+      ? `Like, ${likeCount} ${likeCount === 1 ? "like" : "likes"}`
+      : "Like";
+  const bookmarkAriaLabel = isBookmarked ? "Remove bookmark" : "Bookmark";
+
+  useEffect(() => {
+    if (!copied) return;
+    const t = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(t);
+  }, [copied]);
+
+  useEffect(() => {
+    if (!shareFailed) return;
+    const t = setTimeout(() => setShareFailed(false), 2000);
+    return () => clearTimeout(t);
+  }, [shareFailed]);
+
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareFailed(false);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+      setShareFailed(true);
+    }
+  };
+
+  return (
+    <div className="flex justify-between max-w-md mt-3">
+      {/* Reply */}
+      <button
+        onClick={onReplyToggle}
+        aria-label={replyAriaLabel}
+        className="group/action flex items-center gap-1.5 text-muted-foreground hover:text-accent/70 transition-colors"
+      >
+        <span className="flex items-center justify-center h-8 w-8 rounded-full group-hover/action:bg-accent/10 transition-colors">
+          <MessageCircle className="h-[18px] w-[18px]" />
+        </span>
+        <span className="text-[13px]">{replyCount > 0 ? replyCount : ""}</span>
+      </button>
+
+      {/* Repost */}
+      <button
+        onClick={onRepost}
+        aria-label={repostAriaLabel}
+        aria-pressed={isReposted}
+        className={cn(
+          "group/action flex items-center gap-1.5 transition-colors",
+          isReposted
+            ? "text-green-500"
+            : "text-muted-foreground hover:text-green-500/70"
+        )}
+      >
+        <span className="flex items-center justify-center h-8 w-8 rounded-full group-hover/action:bg-green-500/10 transition-colors">
+          <Repeat2
+            className={cn(
+              "h-[18px] w-[18px] transition-transform",
+              isReposted && "scale-110"
+            )}
+          />
+        </span>
+        <span className="text-[13px]">{repostCount > 0 ? repostCount : ""}</span>
+      </button>
+
+      {/* Like */}
+      <button
+        onClick={onLike}
+        aria-label={likeAriaLabel}
+        aria-pressed={isLiked}
+        className={cn(
+          "group/action flex items-center gap-1.5 transition-colors",
+          isLiked
+            ? "text-red-400"
+            : "text-muted-foreground hover:text-red-400/70"
+        )}
+      >
+        <span className="flex items-center justify-center h-8 w-8 rounded-full group-hover/action:bg-red-400/10 transition-colors">
+          <Heart
+            className={cn(
+              "h-[18px] w-[18px] transition-transform",
+              isLiked && "scale-110 fill-current"
+            )}
+          />
+        </span>
+        <span className="text-[13px]">{likeCount > 0 ? likeCount : ""}</span>
+      </button>
+
+      {/* Bookmark */}
+      <button
+        onClick={onBookmark}
+        aria-label={bookmarkAriaLabel}
+        aria-pressed={isBookmarked}
+        className={cn(
+          "group/action flex items-center gap-1.5 transition-colors",
+          isBookmarked
+            ? "text-accent"
+            : "text-muted-foreground hover:text-accent/70"
+        )}
+      >
+        <span className="flex items-center justify-center h-8 w-8 rounded-full group-hover/action:bg-accent/10 transition-colors">
+          <Bookmark
+            className={cn(
+              "h-[18px] w-[18px] transition-transform",
+              isBookmarked && "scale-110 fill-current"
+            )}
+          />
+        </span>
+      </button>
+
+      {/* Share */}
+      <button
+        onClick={handleShare}
+        aria-label="Share chronicle"
+        className={cn(
+          "group/action flex items-center gap-1.5 transition-colors",
+          copied
+            ? "text-green-500"
+            : shareFailed
+              ? "text-destructive"
+              : "text-muted-foreground hover:text-accent/70"
+        )}
+      >
+        <span className="flex items-center justify-center h-8 w-8 rounded-full group-hover/action:bg-accent/10 transition-colors">
+          {copied ? (
+            <Check className="h-[18px] w-[18px]" />
+          ) : (
+            <Share className="h-[18px] w-[18px]" />
+          )}
+        </span>
+      </button>
+
+      <span className="sr-only" aria-live="polite">
+        {copied && "Copied to clipboard"}
+        {shareFailed && "Failed to copy to clipboard"}
+      </span>
+    </div>
+  );
+}

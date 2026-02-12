@@ -42,4 +42,37 @@ export default defineSchema({
     fontFamily: v.string(),
     lineHeight: v.number(),
   }).index("by_user", ["userId"]),
+
+  chronicles: defineTable({
+    authorId: v.string(),
+    text: v.string(),
+    bookRef: v.optional(v.string()),
+    parentChronicleId: v.optional(v.id("chronicles")),
+    spoilerTag: v.optional(v.boolean()),
+    likeCount: v.number(),
+    replyCount: v.number(),
+    repostCount: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_author", ["authorId"])
+    .index("by_created", ["createdAt"])
+    .index("by_parent_chronicle", ["parentChronicleId"]),
+
+  follows: defineTable({
+    followerId: v.string(),
+    followeeId: v.string(),
+    createdAt: v.number(),
+  })
+    .index("by_follower", ["followerId"])
+    .index("by_followee", ["followeeId"])
+    .index("by_follower_and_followee", ["followerId", "followeeId"]),
+
+  likes: defineTable({
+    userId: v.string(),
+    chronicleId: v.id("chronicles"),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_chronicle", ["chronicleId"])
+    .index("by_user_and_chronicle", ["userId", "chronicleId"]),
 });

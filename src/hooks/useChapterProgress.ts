@@ -20,6 +20,7 @@ export function useChapterProgress(
 
   useEffect(() => {
     if (!rendition) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocation(null);
       return;
     }
@@ -52,11 +53,6 @@ export function useChapterProgress(
   const chaptersRemaining =
     chapters.length > 0 && chapterIndex >= 0
       ? Math.max(0, chapters.length - (chapterIndex + 1))
-      : 0;
-
-  const locationsToken =
-    book && book.locations && typeof book.locations.length === "function"
-      ? book.locations.length()
       : 0;
 
   const chapterProgress = useMemo(() => {
@@ -98,7 +94,7 @@ export function useChapterProgress(
     }
 
     return null;
-  }, [book, currentChapter, chapters, chapterIndex, location, locationsToken]);
+  }, [book, currentChapter, chapters, chapterIndex, location]);
 
   return {
     location,

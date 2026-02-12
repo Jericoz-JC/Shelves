@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import Library from "@/pages/Library";
 import Reader from "@/pages/Reader";
+import Feed from "@/pages/Feed";
 
 export const router = createBrowserRouter([
   {
@@ -14,5 +15,34 @@ export const router = createBrowserRouter([
   {
     path: "/read/:bookId",
     element: <Reader />,
+  },
+  {
+    path: "/feed",
+    children: [
+      {
+        index: true,
+        element: <Feed />,
+      },
+      {
+        path: "following",
+        element: <Feed />,
+      },
+      {
+        path: "bookmarks",
+        element: <Feed />,
+      },
+      {
+        path: "likes",
+        element: <Feed />,
+      },
+      {
+        path: "reposts",
+        element: <Feed />,
+      },
+      {
+        path: "profile/:userId",
+        element: <Feed />,
+      },
+    ],
   },
 ]);
