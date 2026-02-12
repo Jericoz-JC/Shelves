@@ -1,6 +1,6 @@
+import { type RefObject } from "react";
 import { NavLink } from "react-router-dom";
 import { Ellipsis } from "lucide-react";
-import { motion, useReducedMotion } from "motion/react";
 import {
   Sheet,
   SheetClose,
@@ -38,22 +38,17 @@ function BottomNavItem({ item }: { item: SocialNavItem }) {
 }
 
 interface SocialBottomNavProps {
-  isVisible?: boolean;
+  navOffset?: number;
+  navRef?: RefObject<HTMLElement | null>;
 }
 
-export function SocialBottomNav({ isVisible = true }: SocialBottomNavProps) {
-  const prefersReducedMotion = useReducedMotion();
-
+export function SocialBottomNav({ navOffset = 0, navRef }: SocialBottomNavProps) {
   return (
-    <motion.nav
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-3 pb-[max(env(safe-area-inset-bottom),0.4rem)] pt-1.5 backdrop-blur md:hidden"
+    <nav
+      ref={navRef}
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-3 pb-[max(env(safe-area-inset-bottom),0.4rem)] pt-1.5 backdrop-blur will-change-transform md:hidden"
       aria-label="Mobile social navigation"
-      animate={{ y: isVisible ? 0 : "100%" }}
-      transition={{
-        type: "tween",
-        duration: prefersReducedMotion ? 0 : 0.3,
-        ease: [0.25, 0.1, 0.25, 1],
-      }}
+      style={{ transform: `translateY(${navOffset}px)` }}
     >
       <div className="mx-auto grid max-w-xl grid-cols-5 items-end">
         {socialBottomPrimaryNav.map((item) => (
@@ -100,6 +95,6 @@ export function SocialBottomNav({ isVisible = true }: SocialBottomNavProps) {
           </SheetContent>
         </Sheet>
       </div>
-    </motion.nav>
+    </nav>
   );
 }

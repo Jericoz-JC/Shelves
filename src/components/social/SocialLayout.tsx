@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import { SocialBottomNav } from "./SocialBottomNav";
 import { SocialSidebar } from "./SocialSidebar";
 
@@ -7,7 +7,8 @@ interface SocialLayoutProps {
   rightRail?: ReactNode;
   navCounts: Partial<Record<string, number>>;
   onComposeClick: () => void;
-  navVisible?: boolean;
+  navOffset?: number;
+  navRef?: RefObject<HTMLElement | null>;
 }
 
 export function SocialLayout({
@@ -15,7 +16,8 @@ export function SocialLayout({
   rightRail,
   navCounts,
   onComposeClick,
-  navVisible,
+  navOffset,
+  navRef,
 }: SocialLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
@@ -29,7 +31,7 @@ export function SocialLayout({
         {rightRail}
       </div>
 
-      <SocialBottomNav isVisible={navVisible} />
+      <SocialBottomNav navOffset={navOffset} navRef={navRef} />
     </div>
   );
 }

@@ -96,7 +96,7 @@ export default function Feed() {
   // Real books from IndexedDB for current user
   const { books: libraryBooks } = useLibrary();
 
-  const navVisible = useScrollDirection({ threshold: 10 });
+  const { offset: navOffset, navRef } = useScrollDirection();
 
   useRouteScrollRestoration(location.pathname);
 
@@ -353,7 +353,8 @@ export default function Feed() {
       <SocialLayout
         navCounts={navCounts}
         onComposeClick={() => setComposeOpen(true)}
-        navVisible={navVisible}
+        navOffset={navOffset}
+        navRef={navRef}
         rightRail={
           <FeedRightRail
             trending={trendingBooks}
@@ -430,7 +431,7 @@ export default function Feed() {
       </SocialLayout>
 
       {showComposeButton && (
-        <SocialComposeButton onClick={() => setComposeOpen(true)} navVisible={navVisible} />
+        <SocialComposeButton onClick={() => setComposeOpen(true)} navOffset={navOffset} />
       )}
 
       <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
