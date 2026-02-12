@@ -16,6 +16,7 @@ import {
 } from "@/data/mockDiscovery";
 import { useLibrary } from "@/hooks/useIndexedDB";
 import { useRouteScrollRestoration } from "@/hooks/useRouteScrollRestoration";
+import { useScrollDirection } from "@/hooks/useScrollDirection";
 import { FeedHeader } from "@/components/social/FeedHeader";
 import { ChronicleComposer } from "@/components/social/ChronicleComposer";
 import { FeedTimeline } from "@/components/social/FeedTimeline";
@@ -94,6 +95,8 @@ export default function Feed() {
 
   // Real books from IndexedDB for current user
   const { books: libraryBooks } = useLibrary();
+
+  const navVisible = useScrollDirection({ threshold: 10 });
 
   useRouteScrollRestoration(location.pathname);
 
@@ -350,6 +353,7 @@ export default function Feed() {
       <SocialLayout
         navCounts={navCounts}
         onComposeClick={() => setComposeOpen(true)}
+        navVisible={navVisible}
         rightRail={
           <FeedRightRail
             trending={trendingBooks}
@@ -425,7 +429,9 @@ export default function Feed() {
         />
       </SocialLayout>
 
-      {showComposeButton && <SocialComposeButton onClick={() => setComposeOpen(true)} />}
+      {showComposeButton && (
+        <SocialComposeButton onClick={() => setComposeOpen(true)} navVisible={navVisible} />
+      )}
 
       <Dialog open={composeOpen} onOpenChange={setComposeOpen}>
         <DialogContent className="max-w-xl p-0">

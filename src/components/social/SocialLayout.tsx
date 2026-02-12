@@ -7,6 +7,7 @@ interface SocialLayoutProps {
   rightRail?: ReactNode;
   navCounts: Partial<Record<string, number>>;
   onComposeClick: () => void;
+  navVisible?: boolean;
 }
 
 export function SocialLayout({
@@ -14,6 +15,7 @@ export function SocialLayout({
   rightRail,
   navCounts,
   onComposeClick,
+  navVisible,
 }: SocialLayoutProps) {
   return (
     <div className="min-h-screen bg-background">
@@ -27,7 +29,7 @@ export function SocialLayout({
         {rightRail}
       </div>
 
-      <SocialBottomNav />
+      <SocialBottomNav isVisible={navVisible} />
     </div>
   );
 }
