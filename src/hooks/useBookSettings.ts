@@ -19,6 +19,7 @@ export function useBookSettings(bookHash: string | null) {
     let cancelled = false;
 
     if (!bookHash) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSettings(null);
       setLoading(false);
       return () => {

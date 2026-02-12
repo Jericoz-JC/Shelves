@@ -36,6 +36,7 @@ export function useChapters(book: Book | null) {
 
   useEffect(() => {
     if (!book) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setChapters([]);
       return;
     }
