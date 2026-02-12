@@ -55,7 +55,8 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_author", ["authorId"])
-    .index("by_created", ["createdAt"]),
+    .index("by_created", ["createdAt"])
+    .index("by_parent_chronicle", ["parentChronicleId"]),
 
   follows: defineTable({
     followerId: v.string(),
@@ -63,7 +64,8 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_follower", ["followerId"])
-    .index("by_followee", ["followeeId"]),
+    .index("by_followee", ["followeeId"])
+    .index("by_follower_and_followee", ["followerId", "followeeId"]),
 
   likes: defineTable({
     userId: v.string(),

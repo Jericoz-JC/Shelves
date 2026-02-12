@@ -19,11 +19,11 @@ export default function Library() {
             Shelves
           </h1>
           <div className="flex items-center gap-2">
-            <Link to="/feed">
-              <Button variant="ghost" size="icon" aria-label="Go to chronicles feed">
+            <Button asChild variant="ghost" size="icon" aria-label="Go to chronicles feed">
+              <Link to="/feed">
                 <ScrollText className="h-5 w-5" />
-              </Button>
-            </Link>
+              </Link>
+            </Button>
             <BookUpload onUploadComplete={refresh} />
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import {
   readingClubs,
@@ -38,5 +38,31 @@ describe("FeedRightRail", () => {
     expect(screen.getByText("Trending Books")).toBeInTheDocument();
     expect(screen.getByText("Active Reading Clubs")).toBeInTheDocument();
     expect(screen.getByText("Suggested Readers")).toBeInTheDocument();
+  });
+
+  it("renders widget shells with empty data arrays", () => {
+    render(<FeedRightRail trending={[]} clubs={[]} suggested={[]} />);
+
+    expect(screen.getByText("Trending Books")).toBeInTheDocument();
+    expect(screen.getByText("Active Reading Clubs")).toBeInTheDocument();
+    expect(screen.getByText("Suggested Readers")).toBeInTheDocument();
+  });
+
+  it("allows users to type in the search input", () => {
+    render(
+      <FeedRightRail
+        trending={trendingBooks}
+        clubs={readingClubs}
+        suggested={suggestedReaders}
+      />
+    );
+
+    const searchInput = screen.getByPlaceholderText(
+      "Search readers, books, chronicles"
+    );
+    fireEvent.change(searchInput, { target: { value: "pachinko" } });
+
+    expect(searchInput).toHaveValue("pachinko");
+    expect(screen.getByText("Search results are coming soon.")).toBeInTheDocument();
   });
 });

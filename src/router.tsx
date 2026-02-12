@@ -18,26 +18,31 @@ export const router = createBrowserRouter([
   },
   {
     path: "/feed",
-    element: <Feed />,
-  },
-  {
-    path: "/feed/following",
-    element: <Feed />,
-  },
-  {
-    path: "/feed/bookmarks",
-    element: <Feed />,
-  },
-  {
-    path: "/feed/likes",
-    element: <Feed />,
-  },
-  {
-    path: "/feed/reposts",
-    element: <Feed />,
-  },
-  {
-    path: "/feed/profile/:userId",
-    element: <Feed />,
+    children: [
+      {
+        index: true,
+        element: <Feed />,
+      },
+      {
+        path: "following",
+        element: <Feed />,
+      },
+      {
+        path: "bookmarks",
+        element: <Feed />,
+      },
+      {
+        path: "likes",
+        element: <Feed />,
+      },
+      {
+        path: "reposts",
+        element: <Feed />,
+      },
+      {
+        path: "profile/:userId",
+        element: <Feed />,
+      },
+    ],
   },
 ]);

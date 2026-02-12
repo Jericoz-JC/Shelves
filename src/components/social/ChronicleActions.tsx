@@ -30,6 +30,7 @@ export function ChronicleActions({
   onBookmark,
 }: ChronicleActionsProps) {
   const [copied, setCopied] = useState(false);
+  const [shareFailed, setShareFailed] = useState(false);
 
   useEffect(() => {
     if (!copied) return;
@@ -37,9 +38,21 @@ export function ChronicleActions({
     return () => clearTimeout(t);
   }, [copied]);
 
-  const handleShare = () => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
+  useEffect(() => {
+    if (!shareFailed) return;
+    const t = setTimeout(() => setShareFailed(false), 2000);
+    return () => clearTimeout(t);
+  }, [shareFailed]);
+
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setShareFailed(false);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+      setShareFailed(true);
+    }
   };
 
   return (
@@ -58,6 +71,7 @@ export function ChronicleActions({
       {/* Repost */}
       <button
         onClick={onRepost}
+        aria-pressed={isReposted}
         className={cn(
           "group/action flex items-center gap-1.5 transition-colors",
           isReposted
@@ -79,6 +93,7 @@ export function ChronicleActions({
       {/* Like */}
       <button
         onClick={onLike}
+        aria-pressed={isLiked}
         className={cn(
           "group/action flex items-center gap-1.5 transition-colors",
           isLiked
@@ -100,6 +115,7 @@ export function ChronicleActions({
       {/* Bookmark */}
       <button
         onClick={onBookmark}
+        aria-pressed={isBookmarked}
         className={cn(
           "group/action flex items-center gap-1.5 transition-colors",
           isBookmarked
@@ -120,11 +136,14 @@ export function ChronicleActions({
       {/* Share */}
       <button
         onClick={handleShare}
+        aria-label="Share chronicle"
         className={cn(
           "group/action flex items-center gap-1.5 transition-colors",
           copied
             ? "text-green-500"
-            : "text-muted-foreground hover:text-accent/70"
+            : shareFailed
+              ? "text-destructive"
+              : "text-muted-foreground hover:text-accent/70"
         )}
       >
         <span className="flex items-center justify-center h-8 w-8 rounded-full group-hover/action:bg-accent/10 transition-colors">
@@ -135,6 +154,11 @@ export function ChronicleActions({
           )}
         </span>
       </button>
+
+      <span className="sr-only" aria-live="polite">
+        {copied && "Copied to clipboard"}
+        {shareFailed && "Failed to copy to clipboard"}
+      </span>
     </div>
   );
 }

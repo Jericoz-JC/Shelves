@@ -1,1 +1,189 @@
-Shelves — Storage Architecture & Optimization RoadmapCurrent Stack RecapClient storage: IndexedDB (ePub files, metadata, progress, notes, settings)Backend (scaffolded, not wired): Convex (users, books, readingProgress, userPreferences)Auth (planned): ClerkDomain: shelves.cloudPlanned Architecture: R2 + Convex SplitThe principle is simple: Convex for fast, structured, real-time data. R2 for big, static blobs.What Goes WhereLayerStoreWhat Lives HereWhyClientIndexedDBePub files (local cache), offline progress queue, reading positionsInstant offline access, zero-latency page turnsEdge BlobsCloudflare R2ePub files, cover images, video uploads (Reels), user avatars, exported highlights PDFsCheap bulk storage, zero egress fees, global CDN via CFReal-time DBConvexUsers, profiles, reading progress, social content (thoughts, discussions, reels metadata), follows, likes, notifications, spoiler tags, book catalogSub-100ms queries, real-time subscriptions, transactional writes, server-side spoiler filteringThe Data FlowBook upload:User selects ePub → stored in IndexedDB immediately (local-first, works offline)Background sync: ePub uploaded to R2 via Convex action (presigned URL)Convex mutation creates/links book record in bookCatalog with R2 keyCover image extracted → uploaded to R2 → URL stored in ConvexReading progress:CFI + percentage written to IndexedDB on every page turn (instant)Debounced sync (every 30s or on pause/close) → Convex mutationConvex record is the source of truth for social features (spoiler engine reads from here)Video (Reels):Client records/selects videoUpload directly to R2 via presigned URL (Convex action generates the URL)Convex stores reel metadata: R2 key, caption, book tag, spoiler level, durationPlayback streams from R2 via Cloudflare CDN (or Cloudflare Stream for adaptive bitrate later)Social content (Thoughts, Discussions):All text content lives in Convex — small, structured, needs real-time subscriptionsImage attachments on Thoughts → R2 (Convex stores the R2 URL)Feeds assembled server-side in Convex queries with spoiler filtering baked inOptimization RoadmapPhase 1: Foundation Optimizations (wire-up phase)IndexedDB ↔ Convex sync engineImplement a write-ahead log pattern: all writes hit IndexedDB first, then queue for Convex syncConflict resolution: last-write-wins on reading progress (server timestamp), with client vector clock for edge casesOffline queue: mutations stored in IndexedDB when offline, replayed on reconnectDedup: reading progress updates debounced to 30-second intervals to avoid hammering ConvexR2 upload pipelineConvex action generates presigned PUT URLs → client uploads directly to R2 (no proxying through Convex)Chunked uploads for large ePubs (>50MB) using R2 multipart uploadDedup: hash the ePub (you already compute fileHash) → check if R2 key exists before uploading → skip if duplicateThis means 1,000 users uploading the same bestseller = 1 R2 object, not 1,000Lazy book hydrationNew device sign-in: don't download all ePubs immediatelySync book metadata + covers from Convex (tiny payload)Download ePub from R2 only when user taps to read → cache in IndexedDBPre-fetch the next likely book (most recently read, highest progress but unfinished)Phase 2: Feed & Query Optimizations (social launch)Server-side spoiler filtering in ConvexThe feed query joins readingProgress (for the requesting user) against content's bookId + spoilerLevelDenormalize: store a spoilerBracket field (0-3) on content, store user's bracket per book in a materialized view → simple integer comparison instead of percentage mathPagination: cursor-based (by createdAt + _id), never offset-based — offset breaks at scaleFeed assembly strategyDon't compute personalized feeds on every requestUse a fan-out-on-write pattern for the home feed: when a user posts, a Convex scheduled function writes a reference to each follower's feed tableRead path becomes: SELECT * FROM feedItems WHERE userId = X ORDER BY createdAt DESC LIMIT 20 — fast, indexed, no joinsFan-out is capped: users with >10K followers switch to fan-out-on-read (compute at query time) to avoid write amplificationConvex query cachingConvex already caches query results and invalidates on relevant mutations — lean into thisStructure queries to maximize cache hits: separate "feed page 1" from "feed page 2" so page 1 stays cached when page 2 loadsAvoid overly broad queries that invalidate on unrelated writesPhase 3: Media Pipeline (Reels launch)Video processingUpload raw video to R2Convex scheduled action triggers transcoding (via Cloudflare Stream API or a worker)Generate HLS manifest + multiple bitrate renditionsStore transcoded URLs back in ConvexThumbnail extraction: pull frame at 1s mark, resize, store in R2Image optimizationAll user-uploaded images (avatars, thought attachments, covers) go through a Cloudflare Worker that resizes on-the-flyStore original in R2, serve via image.shelves.cloud/{key}?w=400&q=80Generate srcset variants: 200w, 400w, 800w for responsive loadingWebP/AVIF conversion at the edgeCDN strategyR2 + Cloudflare CDN = zero egress cost with global edge cachingSet aggressive Cache-Control on immutable assets (ePub files, processed images, transcoded video)Short TTL on mutable assets (avatars — users change these)Use content-hash URLs for cache busting: covers/{hash}.jpg not covers/user123.jpgPhase 4: Scale Optimizations (growth phase)Read replicas / edge readsConvex handles this natively with their infrastructure, but worth monitoring query latency as user count growsIf needed: cache hot data (trending feed, popular book clubs) in Cloudflare KV as a read-through cache with short TTLSearch infrastructureStart with Convex full-text search indexes (good enough for early scale)Migrate to dedicated search when needed: Typesense or Meilisearch self-hosted, or Algolia managedIndex: book titles, thought text, discussion titles/bodies, usernames, book club namesFaceted search: filter by genre, spoiler-safe content only, book club, date rangeNotification fan-outEarly: Convex mutation writes one notification per recipient (fine up to ~1K followers)Growth: batch notification writes in scheduled actions, process in chunks of 100Push notifications: integrate with FCM/APNs via Convex HTTP actionsRate limiting & abuse preventionConvex-side rate limits on mutations: max 10 thoughts/minute, max 3 video uploads/hourR2 upload size limits enforced via presigned URL conditionsContent hash dedup: identical posts within 60s window → rejectPhase 5: Advanced Optimizations (at scale)Reading progress as an event streamInstead of updating a single readingProgress row, append to a readingEvents logEnables: reading speed analytics, heatmaps (which chapters get re-read), session duration trackingCompact periodically: roll up events older than 30 days into the summary readingProgress recordThe event stream feeds into recommendation algorithms: "users who slow down at Chapter 7 of this book also loved..."Spoiler engine v2: ML-assisted taggingUsers sometimes mis-tag spoiler levels or forget entirelyTrain a classifier on post text + book metadata to suggest/auto-assign spoiler bracketsRun as a Convex action post-creation: if confidence > 0.9, auto-tag; otherwise flag for user confirmationTraining data comes from the corpus of correctly-tagged postsSocial graph optimizationsMaterialized follower counts (increment/decrement on follow/unfollow, don't COUNT(*) on read)Mutual follow detection: maintain a mutualFollows table for fast lookup"Users like you" recommendations: collaborative filtering on library overlap (computed offline, stored as precomputed suggestions)R2 lifecycle policiesAuto-delete orphaned uploads (video uploads that never got linked to a reel record) after 24 hoursMove rarely-accessed ePubs to R2 Infrequent Access tier after 90 days of no downloadsCompress cover images that haven't been accessed in 30 days (downsize to 400px max)Cost Model SnapshotRough estimates at different scales:ScaleUsersR2 StorageR2 OpsConvexEst. MonthlyLaunch1K~5 GB (books + covers)MinimalFree tier~$0Early growth10K~100 GB (+ some video)~1M reads/moPro tier~$50-80Traction100K~2 TB (heavy video)~50M reads/moPro + scale~$300-500Scale1M~20 TB~500M reads/moEnterprise~$2-5KThe R2 zero-egress model is critical here — a social platform with video would be crushing on S3 egress fees. R2's pricing makes Reels economically viable even at scale.Key Architecture Decisions SummaryR2 for blobs, Convex for everything else — clean separation, no ambiguity about where data livesPresigned URLs for uploads — client talks directly to R2, Convex never proxies large filesIndexedDB as local cache, not source of truth — after auth wiring, Convex is canonical; IndexedDB is for offline/speedePub dedup by fileHash — one copy per unique book in R2, regardless of how many users upload itSpoiler filtering server-side — never ship spoiler content to the client and hope JS hides itFan-out-on-write for feeds — pre-compute feeds at write time, read path stays fastEvent-sourced reading progress — enables analytics, recommendations, and the spoiler engine to evolve independently
+# Shelves Storage Architecture & Optimization Roadmap
+
+## Current Stack Recap
+
+- Client storage: IndexedDB (ePub files, metadata, progress, notes, settings)
+- Backend (scaffolded, not wired): Convex (users, books, readingProgress, userPreferences)
+- Auth (planned): Clerk
+- Domain: `shelves.cloud`
+
+## Planned Architecture: R2 + Convex Split
+
+The principle is simple: Convex for fast, structured, real-time data, and R2 for big static blobs.
+
+### What Goes Where
+
+| Layer | Store | What Lives Here | Why |
+| --- | --- | --- | --- |
+| Client | IndexedDB | ePub files (local cache), offline progress queue, reading positions | Instant offline access and zero-latency page turns |
+| Edge blobs | Cloudflare R2 | ePub files, cover images, video uploads (Reels), user avatars, exported highlights PDFs | Cheap bulk storage, zero egress fees, global CDN via Cloudflare |
+| Real-time DB | Convex | Users, profiles, reading progress, social content (thoughts, discussions, reels metadata), follows, likes, notifications, spoiler tags, book catalog | Sub-100ms queries, real-time subscriptions, transactional writes, server-side spoiler filtering |
+
+### Data Flow
+
+#### Book Upload
+
+- User selects ePub -> store in IndexedDB immediately (local-first, works offline)
+- Background sync uploads ePub to R2 via Convex action using presigned URL
+- Convex mutation creates or links book record in `bookCatalog` with R2 key
+- Cover image is extracted, uploaded to R2, and URL is stored in Convex
+
+#### Reading Progress
+
+- CFI and percentage are written to IndexedDB on every page turn (instant)
+- Debounced sync (every 30s or on pause/close) sends data to Convex mutation
+- Convex becomes source of truth for social features (spoiler engine reads from here)
+
+#### Video (Reels)
+
+- Client records or selects video
+- Upload directly to R2 via presigned URL generated by Convex action
+- Convex stores reel metadata: R2 key, caption, book tag, spoiler level, duration
+- Playback streams from R2 via Cloudflare CDN (or Cloudflare Stream later)
+
+#### Social Content (Thoughts, Discussions)
+
+- All text content lives in Convex (small, structured, real-time)
+- Image attachments live in R2 with URLs stored in Convex
+- Feeds are assembled server-side in Convex queries with spoiler filtering baked in
+
+## Optimization Roadmap
+
+### Phase 1: Foundation Optimizations (Wire-Up Phase)
+
+#### IndexedDB <-> Convex Sync Engine
+
+- Use write-ahead log pattern: write to IndexedDB first, then queue Convex sync
+- Conflict resolution: last-write-wins on reading progress (server timestamp), with client vector clock for edge cases
+- Offline queue: store mutations in IndexedDB while offline and replay on reconnect
+- Debounce progress updates to 30s intervals to avoid hammering Convex
+
+#### R2 Upload Pipeline
+
+- Convex action generates presigned `PUT` URLs; client uploads directly to R2
+- Use multipart upload for large ePubs (>50MB)
+- Dedup by `fileHash`: check existing R2 key before upload and skip duplicates
+- Result: 1,000 users uploading the same title can map to one R2 object
+
+#### Lazy Book Hydration
+
+- On new device sign-in, do not download all ePubs immediately
+- Sync metadata and covers from Convex first (small payload)
+- Download ePub from R2 only when user opens a book, then cache in IndexedDB
+- Pre-fetch likely next book by recency and unfinished progress
+
+### Phase 2: Feed and Query Optimizations (Social Launch)
+
+#### Server-Side Spoiler Filtering in Convex
+
+- Join `readingProgress` against content `bookId` and `spoilerLevel`
+- Denormalize with `spoilerBracket` (0-3) for simple integer comparison
+- Use cursor pagination (`createdAt + _id`), never offset pagination
+
+#### Feed Assembly Strategy
+
+- Use fan-out-on-write for home feed references
+- Read path stays simple and indexed (`feedItems by userId` ordered by `createdAt`)
+- Cap fan-out for accounts >10K followers and switch to fan-out-on-read
+
+#### Convex Query Caching
+
+- Structure queries to maximize cache hits (page 1 and page 2 split)
+- Avoid overly broad queries that invalidate on unrelated writes
+
+### Phase 3: Media Pipeline (Reels Launch)
+
+#### Video Processing
+
+- Upload raw video to R2
+- Trigger transcoding via Convex scheduled action (Cloudflare Stream API or worker)
+- Generate HLS manifest and multi-bitrate renditions
+- Extract thumbnail at 1s mark, resize, and store in R2
+
+#### Image Optimization
+
+- Route uploads through Cloudflare Worker for on-the-fly resize
+- Store original in R2 and serve optimized variants
+- Generate `srcset` variants: 200w, 400w, 800w
+- Convert to WebP/AVIF at edge
+
+#### CDN Strategy
+
+- Use R2 + Cloudflare CDN for global edge caching and zero egress
+- Aggressive `Cache-Control` for immutable assets
+- Short TTL for mutable assets like avatars
+- Use content-hash URLs for cache busting (for example `covers/{hash}.jpg`)
+
+### Phase 4: Scale Optimizations (Growth Phase)
+
+#### Read Replicas and Edge Reads
+
+- Monitor Convex latency as user count grows
+- Add Cloudflare KV read-through cache for hot content if needed
+
+#### Search Infrastructure
+
+- Start with Convex full-text indexes
+- Migrate to Typesense, Meilisearch, or Algolia when needed
+- Index books, thoughts, discussions, usernames, and clubs
+- Support faceted filtering (genre, spoiler-safe content, club, date range)
+
+#### Notification Fan-Out
+
+- Early stage: one notification row per recipient
+- Growth stage: batch writes via scheduled actions in chunks
+- Add push integration through Convex HTTP actions (FCM/APNs)
+
+#### Rate Limiting and Abuse Prevention
+
+- Convex mutation limits (for example thoughts/minute, uploads/hour)
+- Enforce R2 upload size limits in presigned URL conditions
+- Dedup identical posts in short windows by content hash
+
+### Phase 5: Advanced Optimizations (At Scale)
+
+#### Reading Progress as Event Stream
+
+- Append to `readingEvents` instead of single-row updates
+- Enable speed analytics, re-read heatmaps, and session duration insights
+- Periodically compact old events into summary `readingProgress`
+- Feed recommendation signals from event behavior
+
+#### Spoiler Engine v2: ML-Assisted Tagging
+
+- Train classifier on post text + book metadata for spoiler bracket suggestions
+- Run as Convex action post-creation
+- Auto-tag at high confidence, otherwise request user confirmation
+
+#### Social Graph Optimizations
+
+- Maintain materialized follower counts
+- Maintain `mutualFollows` table for fast mutual detection
+- Pre-compute "users like you" recommendations from library overlap
+
+#### R2 Lifecycle Policies
+
+- Auto-delete orphaned uploads after 24 hours
+- Move cold ePubs to infrequent access tier after 90 days
+- Compress cold cover images to smaller dimensions
+
+## Cost Model Snapshot
+
+| Scale | Users | R2 Storage | R2 Ops | Convex | Est. Monthly |
+| --- | --- | --- | --- | --- | --- |
+| Launch | 1K | ~5 GB | Minimal | Free tier | ~$0 |
+| Early growth | 10K | ~100 GB | ~1M reads/mo | Pro tier | ~$50-80 |
+| Traction | 100K | ~2 TB | ~50M reads/mo | Pro + scale | ~$300-500 |
+| Scale | 1M | ~20 TB | ~500M reads/mo | Enterprise | ~$2K-5K |
+
+R2 zero-egress economics are critical for a social product with media-heavy usage.
+
+## Key Architecture Decisions
+
+- Use R2 for blobs and Convex for structured real-time data
+- Use presigned URLs so Convex never proxies large uploads
+- Treat IndexedDB as cache and offline layer, not long-term source of truth
+- Dedup ePubs by `fileHash` to avoid duplicate blob storage
+- Keep spoiler filtering server-side
+- Use fan-out-on-write for feed speed at normal scale
+- Use event-sourced reading progress for analytics and recommendation evolution

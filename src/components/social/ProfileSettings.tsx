@@ -13,9 +13,11 @@ export function ProfileSettings({ profile, onSave, onBack }: ProfileSettingsProp
   const [form, setForm] = useState<UserProfile>({ ...profile });
 
   const handleSave = () => {
+    const normalizedHandle = form.handle.trim().replace(/^@+/, "");
+
     onSave({
       displayName: form.displayName.trim() || profile.displayName,
-      handle: form.handle.trim() || profile.handle,
+      handle: normalizedHandle || profile.handle,
       bio: form.bio.trim(),
     });
     onBack();
@@ -27,6 +29,7 @@ export function ProfileSettings({ profile, onSave, onBack }: ProfileSettingsProp
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border/50">
         <button
           onClick={onBack}
+          aria-label="Go back"
           className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-secondary transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />

@@ -4,7 +4,7 @@ import { ChronicleCard } from "./ChronicleCard";
 interface FeedTimelineProps {
   chronicles: Chronicle[];
   replies: Record<string, Reply[]>;
-  bookmarkedIds: Set<string>;
+  currentUserId: string;
   emptyMessage?: string;
   onLike: (id: string) => void;
   onRepost: (id: string) => void;
@@ -17,7 +17,7 @@ interface FeedTimelineProps {
 export function FeedTimeline({
   chronicles,
   replies,
-  bookmarkedIds,
+  currentUserId,
   emptyMessage,
   onLike,
   onRepost,
@@ -43,7 +43,7 @@ export function FeedTimeline({
           key={chronicle.id}
           chronicle={chronicle}
           replies={replies[chronicle.id] || []}
-          isBookmarked={bookmarkedIds.has(chronicle.id)}
+          currentUserId={currentUserId}
           onLike={onLike}
           onRepost={onRepost}
           onReply={onReply}

@@ -34,6 +34,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
+const CURRENT_USER_ID = "me";
+
 function getFeedView(pathname: string): FeedView {
   if (pathname === "/feed/following") return "following";
   if (pathname === "/feed/bookmarks") return "bookmarks";
@@ -92,9 +94,14 @@ export default function Feed() {
   }, []);
 
   const handlePost = (text: string) => {
+    const chronicleId =
+      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+        ? crypto.randomUUID()
+        : `c-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
     const newChronicle: Chronicle = {
-      id: `c-${Date.now()}`,
-      authorId: "me",
+      id: chronicleId,
+      authorId: CURRENT_USER_ID,
       text,
       createdAt: Date.now(),
       likeCount: 0,
@@ -144,7 +151,7 @@ export default function Feed() {
     const newReply: Reply = {
       id: `r-${Date.now()}`,
       chronicleId,
-      authorId: "me",
+      authorId: CURRENT_USER_ID,
       text,
       createdAt: Date.now(),
     };
@@ -204,7 +211,7 @@ export default function Feed() {
 
     if (feedView === "following") {
       return posts.filter(
-        (post) => post.authorId === "me" || followedIds.has(post.authorId)
+        (post) => post.authorId === CURRENT_USER_ID || followedIds.has(post.authorId)
       );
     }
     if (feedView === "bookmarks") {
@@ -222,7 +229,7 @@ export default function Feed() {
 
   const emptyMessage = useMemo(() => {
     if (isProfileRoute) {
-      return routeProfileUserId === "me"
+      return routeProfileUserId === CURRENT_USER_ID
         ? "You have not posted any chronicles yet."
         : "This reader has not posted any chronicles yet.";
     }
@@ -242,14 +249,9 @@ export default function Feed() {
     return "No chronicles yet. Be the first to post.";
   }, [feedView, isProfileRoute, routeProfileUserId]);
 
-  const bookmarkedIds = useMemo(
-    () => new Set(posts.filter((post) => post.isBookmarked).map((post) => post.id)),
-    [posts]
-  );
-
   // Derive profile sidebar data
   const profileUser = profileUserId ? (getUserById(profileUserId) ?? null) : null;
-  const isCurrentUser = profileUserId === "me";
+  const isCurrentUser = profileUserId === CURRENT_USER_ID;
 
   const profileBooks = useMemo(() => {
     if (isCurrentUser) return libraryBooks;
@@ -273,7 +275,7 @@ export default function Feed() {
   const profileRouteUser = routeProfileUserId
     ? (getUserById(routeProfileUserId) ?? null)
     : null;
-  const isProfileCurrentUser = routeProfileUserId === "me";
+  const isProfileCurrentUser = routeProfileUserId === CURRENT_USER_ID;
 
   const profileRouteUserWithEdits = useMemo(
     () =>
@@ -322,7 +324,7 @@ export default function Feed() {
   const navCounts = useMemo(
     () => ({
       following: posts.filter(
-        (post) => post.authorId !== "me" && followedIds.has(post.authorId)
+        (post) => post.authorId !== CURRENT_USER_ID && followedIds.has(post.authorId)
       ).length,
       bookmarks: posts.filter((post) => post.isBookmarked).length,
       likes: posts.filter((post) => post.isLiked).length,
@@ -397,7 +399,7 @@ export default function Feed() {
           <div className="hidden md:block">
             <ChronicleComposer
               onPost={handlePost}
-              onAvatarClick={() => handleAvatarClick("me")}
+              onAvatarClick={() => handleAvatarClick(CURRENT_USER_ID)}
             />
           </div>
         )}
@@ -405,7 +407,7 @@ export default function Feed() {
         <FeedTimeline
           chronicles={filteredPosts}
           replies={replies}
-          bookmarkedIds={bookmarkedIds}
+          currentUserId={CURRENT_USER_ID}
           emptyMessage={emptyMessage}
           onLike={handleLike}
           onRepost={handleRepost}
@@ -428,7 +430,7 @@ export default function Feed() {
           </DialogHeader>
           <ChronicleComposer
             onPost={handlePost}
-            onAvatarClick={() => handleAvatarClick("me")}
+            onAvatarClick={() => handleAvatarClick(CURRENT_USER_ID)}
             className="border-none pb-4"
             autoFocus
           />

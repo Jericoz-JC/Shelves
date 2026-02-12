@@ -30,7 +30,13 @@ export function ChronicleReplies({ replies, onReply, onAvatarClick }: ChronicleR
       )}
       {replies.map((reply) => {
         const user = getUserById(reply.authorId);
-        if (!user) return null;
+        if (!user) {
+          if (import.meta.env.DEV) {
+            // Helps identify orphaned mock/live reply records during development.
+            console.warn(`Missing user for reply ${reply.id} (${reply.authorId})`);
+          }
+          return null;
+        }
         return (
           <div key={reply.id} className="flex gap-2 py-2">
             <UserAvatar
@@ -62,7 +68,12 @@ export function ChronicleReplies({ replies, onReply, onAvatarClick }: ChronicleR
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
             placeholder="Reply..."
             className="flex-1 bg-secondary/50 border border-border/50 rounded-full px-3 py-1.5 text-[13px] placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent/50"
           />

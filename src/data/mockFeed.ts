@@ -1,4 +1,5 @@
 import type { SocialUser, Chronicle } from "@/types/social";
+import { hoursAgo, minutesAgo } from "./mockTime";
 
 export const mockUsers: SocialUser[] = [
   {
@@ -39,16 +40,12 @@ export const mockUsers: SocialUser[] = [
   },
 ];
 
-const now = Date.now();
-const hours = (h: number) => now - h * 60 * 60 * 1000;
-const minutes = (m: number) => now - m * 60 * 1000;
-
 export const mockChronicles: Chronicle[] = [
   {
     id: "c1",
     authorId: "u1",
     text: "Just finished 'The Remains of the Day' and I'm emotionally devastated. Ishiguro writes regret like no one else. The final bench scene broke me.",
-    createdAt: hours(2),
+    createdAt: hoursAgo(2),
     likeCount: 24,
     replyCount: 3,
     repostCount: 5,
@@ -60,7 +57,7 @@ export const mockChronicles: Chronicle[] = [
     id: "c2",
     authorId: "u2",
     text: "Hot take: audiobooks count as reading. I will die on this hill.",
-    createdAt: hours(5),
+    createdAt: hoursAgo(5),
     likeCount: 47,
     replyCount: 12,
     repostCount: 8,
@@ -72,7 +69,7 @@ export const mockChronicles: Chronicle[] = [
     id: "c3",
     authorId: "u3",
     text: "Currently 200 pages into 'Pachinko' and I can already tell this is going to be a 5-star read. Min Jin Lee's prose is breathtaking.",
-    createdAt: hours(6),
+    createdAt: hoursAgo(6),
     likeCount: 31,
     replyCount: 4,
     repostCount: 6,
@@ -84,7 +81,7 @@ export const mockChronicles: Chronicle[] = [
     id: "c4",
     authorId: "u4",
     text: "\"We are all in the gutter, but some of us are looking at the stars.\" \u2014 Oscar Wilde. This quote lives in my head rent-free.",
-    createdAt: hours(8),
+    createdAt: hoursAgo(8),
     likeCount: 89,
     replyCount: 2,
     repostCount: 22,
@@ -96,7 +93,7 @@ export const mockChronicles: Chronicle[] = [
     id: "c5",
     authorId: "u5",
     text: "Unpopular opinion: DNF-ing a book is self-care. Life is too short for books that don't spark joy.",
-    createdAt: hours(10),
+    createdAt: hoursAgo(10),
     likeCount: 150,
     replyCount: 18,
     repostCount: 34,
@@ -108,7 +105,7 @@ export const mockChronicles: Chronicle[] = [
     id: "c6",
     authorId: "u1",
     text: "Starting a buddy read of 'Normal People' next week. Anyone want to join? We'll discuss one chapter per day.",
-    createdAt: hours(12),
+    createdAt: hoursAgo(12),
     likeCount: 15,
     replyCount: 7,
     repostCount: 3,
@@ -120,7 +117,7 @@ export const mockChronicles: Chronicle[] = [
     id: "c7",
     authorId: "u3",
     text: "The way Donna Tartt describes autumn in 'The Secret History' makes me want to drop everything and move to Vermont.",
-    createdAt: hours(14),
+    createdAt: hoursAgo(14),
     likeCount: 67,
     replyCount: 5,
     repostCount: 12,
@@ -132,7 +129,7 @@ export const mockChronicles: Chronicle[] = [
     id: "c8",
     authorId: "u2",
     text: "Just reorganized my bookshelf by color and I have zero regrets. Yes I know it's chaotic. Yes it looks amazing.",
-    createdAt: hours(18),
+    createdAt: hoursAgo(18),
     likeCount: 38,
     replyCount: 9,
     repostCount: 4,
@@ -144,7 +141,7 @@ export const mockChronicles: Chronicle[] = [
     id: "c9",
     authorId: "u4",
     text: "Reading 'Project Hail Mary' and I'm grinning like an idiot on the train. Weir really knows how to write pure fun sci-fi.",
-    createdAt: hours(20),
+    createdAt: hoursAgo(20),
     likeCount: 52,
     replyCount: 6,
     repostCount: 10,
@@ -156,7 +153,7 @@ export const mockChronicles: Chronicle[] = [
     id: "c10",
     authorId: "u5",
     text: "Friendly reminder that your local library probably has a digital lending program. Free ebooks and audiobooks, people!",
-    createdAt: minutes(45),
+    createdAt: minutesAgo(45),
     likeCount: 112,
     replyCount: 8,
     repostCount: 45,

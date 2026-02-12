@@ -25,7 +25,7 @@ import {
 interface ChronicleCardProps {
   chronicle: Chronicle;
   replies: Reply[];
-  isBookmarked: boolean;
+  currentUserId: string;
   onLike: (id: string) => void;
   onRepost: (id: string) => void;
   onReply: (chronicleId: string, text: string) => void;
@@ -37,7 +37,7 @@ interface ChronicleCardProps {
 export function ChronicleCard({
   chronicle,
   replies,
-  isBookmarked,
+  currentUserId,
   onLike,
   onRepost,
   onReply,
@@ -50,7 +50,7 @@ export function ChronicleCard({
   const user = getUserById(chronicle.authorId);
   if (!user) return null;
 
-  const isOwn = chronicle.authorId === "me";
+  const isOwn = chronicle.authorId === currentUserId;
 
   return (
     <div>
@@ -100,7 +100,8 @@ export function ChronicleCard({
             isLiked={chronicle.isLiked}
             isReposted={chronicle.isReposted}
             text={chronicle.text}
-            isBookmarked={isBookmarked}
+            // Bookmark state is sourced directly from the chronicle model.
+            isBookmarked={chronicle.isBookmarked}
             onLike={() => onLike(chronicle.id)}
             onRepost={() => onRepost(chronicle.id)}
             onReplyToggle={() => setShowReplies((s) => !s)}

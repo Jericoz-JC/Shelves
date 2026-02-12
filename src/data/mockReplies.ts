@@ -1,8 +1,5 @@
 import type { Reply, MockBook } from "@/types/social";
-
-const now = Date.now();
-const hours = (h: number) => now - h * 60 * 60 * 1000;
-const minutes = (m: number) => now - m * 60 * 1000;
+import { hoursAgo, minutesAgo } from "./mockTime";
 
 export const mockReplies: Reply[] = [
   // Replies to c1 (Elena's Remains of the Day post)
@@ -11,21 +8,21 @@ export const mockReplies: Reply[] = [
     chronicleId: "c1",
     authorId: "u2",
     text: "Totally agree! Ishiguro's subtlety is unmatched. Have you read 'Never Let Me Go'?",
-    createdAt: hours(1),
+    createdAt: hoursAgo(1),
   },
   {
     id: "r2",
     chronicleId: "c1",
     authorId: "u3",
     text: "Added to my TBR list! I've been meaning to read more Ishiguro.",
-    createdAt: minutes(45),
+    createdAt: minutesAgo(45),
   },
   {
     id: "r3",
     chronicleId: "c1",
     authorId: "u5",
     text: "The bench scene is devastating. I had to put the book down for a moment.",
-    createdAt: minutes(30),
+    createdAt: minutesAgo(30),
   },
 
   // Replies to c2 (James's audiobooks take)
@@ -34,14 +31,14 @@ export const mockReplies: Reply[] = [
     chronicleId: "c2",
     authorId: "u1",
     text: "100%! A good narrator can elevate a book to another level.",
-    createdAt: hours(4),
+    createdAt: hoursAgo(4),
   },
   {
     id: "r5",
     chronicleId: "c2",
     authorId: "u4",
     text: "Hot take indeed. But I'm with you on this one.",
-    createdAt: hours(3),
+    createdAt: hoursAgo(3),
   },
 
   // Replies to c3 (Priya's Pachinko)
@@ -50,14 +47,14 @@ export const mockReplies: Reply[] = [
     chronicleId: "c3",
     authorId: "u1",
     text: "Pachinko is phenomenal. You're in for a ride!",
-    createdAt: hours(5),
+    createdAt: hoursAgo(5),
   },
   {
     id: "r7",
     chronicleId: "c3",
     authorId: "u4",
     text: "One of my all-time favorites. The generational scope is breathtaking.",
-    createdAt: hours(4),
+    createdAt: hoursAgo(4),
   },
 
   // Replies to c4 (Oliver's Wilde quote)
@@ -66,14 +63,14 @@ export const mockReplies: Reply[] = [
     chronicleId: "c4",
     authorId: "u5",
     text: "Oscar Wilde was truly ahead of his time. Every quote is a gem.",
-    createdAt: hours(7),
+    createdAt: hoursAgo(7),
   },
   {
     id: "r9",
     chronicleId: "c4",
     authorId: "u3",
     text: "This one and 'Be yourself; everyone else is already taken.' are my favorites.",
-    createdAt: hours(6),
+    createdAt: hoursAgo(6),
   },
 
   // Replies to c5 (Sofia's DNF opinion)
@@ -82,21 +79,21 @@ export const mockReplies: Reply[] = [
     chronicleId: "c5",
     authorId: "u2",
     text: "Took me years to learn this. Life-changing once you do.",
-    createdAt: hours(9),
+    createdAt: hoursAgo(9),
   },
   {
     id: "r11",
     chronicleId: "c5",
     authorId: "u1",
     text: "I used to force myself through every book. Not anymore!",
-    createdAt: hours(8),
+    createdAt: hoursAgo(8),
   },
   {
     id: "r12",
     chronicleId: "c5",
     authorId: "u3",
     text: "Unless it's for a book club. Then you suffer together.",
-    createdAt: hours(7),
+    createdAt: hoursAgo(7),
   },
 ];
 
