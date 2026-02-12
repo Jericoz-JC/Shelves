@@ -16,7 +16,7 @@ import {
 } from "@/data/mockDiscovery";
 import { useLibrary } from "@/hooks/useIndexedDB";
 import { useRouteScrollRestoration } from "@/hooks/useRouteScrollRestoration";
-import { useScrollDirection } from "@/hooks/useScrollDirection";
+import { useMobileBottomChromeMotion } from "@/hooks/useMobileBottomChromeMotion";
 import { FeedHeader } from "@/components/social/FeedHeader";
 import { ChronicleComposer } from "@/components/social/ChronicleComposer";
 import { FeedTimeline } from "@/components/social/FeedTimeline";
@@ -96,7 +96,14 @@ export default function Feed() {
   // Real books from IndexedDB for current user
   const { books: libraryBooks } = useLibrary();
 
-  const { offset: navOffset, navRef } = useScrollDirection();
+  const {
+    navRef,
+    offsetPx: navTranslateYPx,
+    composeTranslatePx,
+    anchorBottomPx,
+  } = useMobileBottomChromeMotion({
+    peekPx: 0,
+  });
 
   useRouteScrollRestoration(location.pathname);
 
@@ -349,11 +356,12 @@ export default function Feed() {
   const showComposeButton = !isProfileRoute || isProfileCurrentUser;
 
   return (
-    <PageTransition>
+    <PageTransition preserveViewportFixed>
       <SocialLayout
         navCounts={navCounts}
         onComposeClick={() => setComposeOpen(true)}
-        navOffset={navOffset}
+        navTranslateYPx={navTranslateYPx}
+        navAnchorBottomPx={anchorBottomPx}
         navRef={navRef}
         rightRail={
           <FeedRightRail
@@ -431,7 +439,11 @@ export default function Feed() {
       </SocialLayout>
 
       {showComposeButton && (
-        <SocialComposeButton onClick={() => setComposeOpen(true)} navOffset={navOffset} />
+        <SocialComposeButton
+          onClick={() => setComposeOpen(true)}
+          translateYPx={composeTranslatePx}
+          anchorBottomPx={anchorBottomPx}
+        />
       )}
 
       <Dialog open={composeOpen} onOpenChange={setComposeOpen}>

@@ -4,13 +4,31 @@ import { motion, useReducedMotion } from "motion/react";
 interface PageTransitionProps {
   children: ReactNode;
   className?: string;
+  preserveViewportFixed?: boolean;
 }
 
-export function PageTransition({ children, className }: PageTransitionProps) {
+export function PageTransition({
+  children,
+  className,
+  preserveViewportFixed = false,
+}: PageTransitionProps) {
   const reduceMotion = useReducedMotion();
 
   if (reduceMotion) {
     return <div className={className}>{children}</div>;
+  }
+
+  if (preserveViewportFixed) {
+    return (
+      <motion.div
+        className={className}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {children}
+      </motion.div>
+    );
   }
 
   return (

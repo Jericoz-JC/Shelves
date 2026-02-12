@@ -3,14 +3,22 @@ import { Button } from "@/components/ui/button";
 
 interface SocialComposeButtonProps {
   onClick: () => void;
-  navOffset?: number;
+  translateYPx?: number;
+  anchorBottomPx?: number;
 }
 
-export function SocialComposeButton({ onClick, navOffset = 0 }: SocialComposeButtonProps) {
+export function SocialComposeButton({
+  onClick,
+  translateYPx = 0,
+  anchorBottomPx = 0,
+}: SocialComposeButtonProps) {
   return (
     <div
-      className="fixed bottom-20 right-4 z-40 will-change-transform md:hidden"
-      style={{ transform: `translateY(${navOffset}px)` }}
+      className="fixed right-4 z-40 will-change-transform md:hidden"
+      style={{
+        bottom: `calc(5rem + ${anchorBottomPx}px)`,
+        transform: `translate3d(0, ${translateYPx}px, 0)`,
+      }}
     >
       <Button
         type="button"

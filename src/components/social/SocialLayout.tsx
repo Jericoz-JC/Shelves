@@ -7,7 +7,8 @@ interface SocialLayoutProps {
   rightRail?: ReactNode;
   navCounts: Partial<Record<string, number>>;
   onComposeClick: () => void;
-  navOffset?: number;
+  navTranslateYPx?: number;
+  navAnchorBottomPx?: number;
   navRef?: RefObject<HTMLElement | null>;
 }
 
@@ -16,7 +17,8 @@ export function SocialLayout({
   rightRail,
   navCounts,
   onComposeClick,
-  navOffset,
+  navTranslateYPx,
+  navAnchorBottomPx,
   navRef,
 }: SocialLayoutProps) {
   return (
@@ -31,7 +33,11 @@ export function SocialLayout({
         {rightRail}
       </div>
 
-      <SocialBottomNav navOffset={navOffset} navRef={navRef} />
+      <SocialBottomNav
+        translateYPx={navTranslateYPx}
+        anchorBottomPx={navAnchorBottomPx}
+        navRef={navRef}
+      />
     </div>
   );
 }

@@ -92,21 +92,6 @@ export const socialBottomPrimaryNav: SocialNavItem[] = [
     path: "/feed/profile/me",
     icon: UserRound,
   },
-];
-
-export const socialBottomMoreNav: SocialNavItem[] = [
-  {
-    id: "following",
-    label: "Following",
-    path: "/feed/following",
-    icon: Users,
-  },
-  {
-    id: "reposts",
-    label: "Reposts",
-    path: "/feed/reposts",
-    icon: Repeat2,
-  },
   {
     id: "library",
     label: "Library",
