@@ -61,6 +61,7 @@
 - R2 blob storage pipeline
 - Cross-device sync
 - Real social backend (currently mock data)
+- Profile reposts tab on user pages (planned)
 - PWA / offline support
 - Video Reels
 

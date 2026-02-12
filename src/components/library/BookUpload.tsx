@@ -53,8 +53,8 @@ export function BookUpload({ onUploadComplete }: BookUploadProps) {
       <Button
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
-        size="lg"
-        className="gap-2"
+        size="default"
+        className="gap-2 bg-accent text-accent-foreground hover:bg-accent/90"
       >
         {uploading ? (
           <>
