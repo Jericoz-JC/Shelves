@@ -40,10 +40,14 @@ export function ProfileSettings({ profile, onSave, onBack }: ProfileSettingsProp
       {/* Form */}
       <div className="flex-1 overflow-y-auto p-4 space-y-5">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-muted-foreground">
+          <label
+            htmlFor="profile-display-name"
+            className="text-sm font-medium text-muted-foreground"
+          >
             Display Name
           </label>
           <input
+            id="profile-display-name"
             type="text"
             value={form.displayName}
             onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))}
@@ -52,7 +56,10 @@ export function ProfileSettings({ profile, onSave, onBack }: ProfileSettingsProp
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-muted-foreground">
+          <label
+            htmlFor="profile-handle"
+            className="text-sm font-medium text-muted-foreground"
+          >
             Handle
           </label>
           <div className="relative">
@@ -60,19 +67,30 @@ export function ProfileSettings({ profile, onSave, onBack }: ProfileSettingsProp
               @
             </span>
             <input
+              id="profile-handle"
               type="text"
               value={form.handle}
-              onChange={(e) => setForm((f) => ({ ...f, handle: e.target.value }))}
+              onChange={(e) =>
+                setForm((f) => ({
+                  ...f,
+                  // Prevent visual "@@" since the UI already renders a prefix glyph.
+                  handle: e.target.value.replace(/^@+/, ""),
+                }))
+              }
               className="w-full bg-secondary border border-border rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-accent/50"
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-muted-foreground">
+          <label
+            htmlFor="profile-bio"
+            className="text-sm font-medium text-muted-foreground"
+          >
             Bio
           </label>
           <textarea
+            id="profile-bio"
             value={form.bio}
             onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
             rows={3}

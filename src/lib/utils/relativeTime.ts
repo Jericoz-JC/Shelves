@@ -1,3 +1,8 @@
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
 export function relativeTime(timestamp: number): string {
   const now = Date.now();
   const diff = now - timestamp;
@@ -16,11 +21,7 @@ export function relativeTime(timestamp: number): string {
     if (days < 7) return `in ${days}d`;
 
     const date = new Date(timestamp);
-    const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ];
-    return `on ${months[date.getMonth()]} ${date.getDate()}`;
+    return `on ${MONTHS[date.getMonth()]} ${date.getDate()}`;
   }
 
   if (seconds < 60) return "now";
@@ -29,9 +30,5 @@ export function relativeTime(timestamp: number): string {
   if (days < 7) return `${days}d`;
 
   const date = new Date(timestamp);
-  const months = [
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-  ];
-  return `${months[date.getMonth()]} ${date.getDate()}`;
+  return `${MONTHS[date.getMonth()]} ${date.getDate()}`;
 }

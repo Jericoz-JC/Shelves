@@ -32,6 +32,20 @@ export function ChronicleActions({
   const [copied, setCopied] = useState(false);
   const [shareFailed, setShareFailed] = useState(false);
 
+  const replyAriaLabel =
+    replyCount > 0
+      ? `Reply, ${replyCount} ${replyCount === 1 ? "reply" : "replies"}`
+      : "Reply";
+  const repostAriaLabel =
+    repostCount > 0
+      ? `Repost, ${repostCount} ${repostCount === 1 ? "repost" : "reposts"}`
+      : "Repost";
+  const likeAriaLabel =
+    likeCount > 0
+      ? `Like, ${likeCount} ${likeCount === 1 ? "like" : "likes"}`
+      : "Like";
+  const bookmarkAriaLabel = isBookmarked ? "Remove bookmark" : "Bookmark";
+
   useEffect(() => {
     if (!copied) return;
     const t = setTimeout(() => setCopied(false), 2000);
@@ -60,6 +74,7 @@ export function ChronicleActions({
       {/* Reply */}
       <button
         onClick={onReplyToggle}
+        aria-label={replyAriaLabel}
         className="group/action flex items-center gap-1.5 text-muted-foreground hover:text-accent/70 transition-colors"
       >
         <span className="flex items-center justify-center h-8 w-8 rounded-full group-hover/action:bg-accent/10 transition-colors">
@@ -71,6 +86,7 @@ export function ChronicleActions({
       {/* Repost */}
       <button
         onClick={onRepost}
+        aria-label={repostAriaLabel}
         aria-pressed={isReposted}
         className={cn(
           "group/action flex items-center gap-1.5 transition-colors",
@@ -93,6 +109,7 @@ export function ChronicleActions({
       {/* Like */}
       <button
         onClick={onLike}
+        aria-label={likeAriaLabel}
         aria-pressed={isLiked}
         className={cn(
           "group/action flex items-center gap-1.5 transition-colors",
@@ -115,6 +132,7 @@ export function ChronicleActions({
       {/* Bookmark */}
       <button
         onClick={onBookmark}
+        aria-label={bookmarkAriaLabel}
         aria-pressed={isBookmarked}
         className={cn(
           "group/action flex items-center gap-1.5 transition-colors",

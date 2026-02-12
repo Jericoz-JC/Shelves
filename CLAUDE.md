@@ -1,4 +1,4 @@
-# Shelves â€” Master Plan
+# Shelves — Master Plan
 
 > **Domain:** shelves.cloud
 > **Repo:** flux-reader (legacy name)
@@ -29,7 +29,7 @@
 
 ### What's Built
 
-**Reader core** â€” fully functional ePub reader:
+**Reader core** — fully functional ePub reader:
 - 4 reading themes (Paper / Night / Focus / Sepia)
 - Font size & family controls
 - Chapter navigation with per-chapter progress
@@ -37,13 +37,13 @@
 - Progress scrubber, auto-save/resume position
 - Per-book settings, keyboard navigation, safe-area insets
 
-**Library** â€” book collection management:
+**Library** — book collection management:
 - ePub upload with SHA-256 dedup
 - Cover extraction, responsive grid layout
 - Long-press delete with confirmation
 - Loading skeletons, empty state
 
-**Social feed** (`feature/social-feed` branch) â€” Chronicles UI with mock data:
+**Social feed** (`feature/social-feed` branch) — Chronicles UI with mock data:
 - Twitter-like timeline with "For You" / "Following" tabs
 - Chronicle composer, like/repost/reply/bookmark actions
 - User profiles with follow/unfollow, profile editing
@@ -51,13 +51,13 @@
 - Animated reply threads, relative timestamps
 - 5 mock users, 10 mock chronicles, 12 mock replies
 
-**Convex schema** â€” scaffolded tables (not connected to UI):
+**Convex schema** — scaffolded tables (not connected to UI):
 - `users`, `books`, `readingProgress`, `userPreferences`
 - `chronicles`, `follows`, `likes` (social)
 
 ### What's Not Built Yet
 - Auth (Clerk integration)
-- Convex â†” UI wiring
+- Convex ↔ UI wiring
 - R2 blob storage pipeline
 - Cross-device sync
 - Real social backend (currently mock data)
@@ -70,76 +70,76 @@
 
 ```text
 flux-reader/
-â”œâ”€â”€ convex/
-â”‚   â”œâ”€â”€ schema.ts              # 7 tables: users, books, readingProgress,
-â”‚   â”‚                          #   userPreferences, chronicles, follows, likes
-â”‚   â”œâ”€â”€ books.ts
-â”‚   â”œâ”€â”€ readingProgress.ts
-â”‚   â””â”€â”€ userPreferences.ts
-â”œâ”€â”€ src/
-â”‚   â”œâ”€â”€ components/
-â”‚   â”‚   â”œâ”€â”€ library/
-â”‚   â”‚   â”‚   â”œâ”€â”€ BookCard.tsx
-â”‚   â”‚   â”‚   â””â”€â”€ BookUpload.tsx
-â”‚   â”‚   â”œâ”€â”€ reader/
-â”‚   â”‚   â”‚   â”œâ”€â”€ ReaderChapterSheet.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ ReaderControls.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ ReaderNavigation.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ ReaderProgress.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ ReaderScrubSheet.tsx
-â”‚   â”‚   â”‚   â””â”€â”€ ReaderTimeline.tsx
-â”‚   â”‚   â”œâ”€â”€ social/
-â”‚   â”‚   â”‚   â”œâ”€â”€ ChronicleActions.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ ChronicleCard.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ ChronicleComposer.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ ChronicleReplies.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ FeedHeader.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ FeedTimeline.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ ProfileBookGrid.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ ProfileSettings.tsx
-â”‚   â”‚   â”‚   â”œâ”€â”€ ProfileSidebar.tsx
-â”‚   â”‚   â”‚   â””â”€â”€ UserAvatar.tsx
-â”‚   â”‚   â””â”€â”€ ui/                # 14 shadcn/ui components
-â”‚   â”œâ”€â”€ data/
-â”‚   â”‚   â”œâ”€â”€ mockFeed.ts        # 5 mock users, 10 chronicles
-â”‚   â”‚   â””â”€â”€ mockReplies.ts     # 12 replies, user book collections
-â”‚   â”œâ”€â”€ hooks/
-â”‚   â”‚   â”œâ”€â”€ useBookSettings.ts
-â”‚   â”‚   â”œâ”€â”€ useChapterProgress.ts
-â”‚   â”‚   â”œâ”€â”€ useChapters.ts
-â”‚   â”‚   â”œâ”€â”€ useEpub.ts
-â”‚   â”‚   â”œâ”€â”€ useIndexedDB.ts
-â”‚   â”‚   â”œâ”€â”€ useReadingProgress.ts
-â”‚   â”‚   â””â”€â”€ useReadingSpeed.ts
-â”‚   â”œâ”€â”€ lib/
-â”‚   â”‚   â”œâ”€â”€ db/
-â”‚   â”‚   â”‚   â”œâ”€â”€ indexedDB.ts   # IndexedDBService (CRUD for all stores)
-â”‚   â”‚   â”‚   â””â”€â”€ schema.ts     # ShelvesDB v1: 6 object stores
-â”‚   â”‚   â”œâ”€â”€ epub/
-â”‚   â”‚   â”‚   â”œâ”€â”€ epubLoader.ts
-â”‚   â”‚   â”‚   â””â”€â”€ epubParser.ts
-â”‚   â”‚   â”œâ”€â”€ theme/
-â”‚   â”‚   â”‚   â””â”€â”€ readingThemes.ts  # Paper, Night, Focus, Sepia
-â”‚   â”‚   â””â”€â”€ utils/
-â”‚   â”‚       â”œâ”€â”€ cn.ts
-â”‚   â”‚       â”œâ”€â”€ fileHash.ts
-â”‚   â”‚       â”œâ”€â”€ relativeTime.ts
-â”‚   â”‚       â””â”€â”€ utils.ts
-â”‚   â”œâ”€â”€ pages/
-â”‚   â”‚   â”œâ”€â”€ Feed.tsx
-â”‚   â”‚   â”œâ”€â”€ Library.tsx
-â”‚   â”‚   â””â”€â”€ Reader.tsx
-â”‚   â”œâ”€â”€ types/
-â”‚   â”‚   â”œâ”€â”€ book.ts
-â”‚   â”‚   â”œâ”€â”€ epub.ts
-â”‚   â”‚   â””â”€â”€ social.ts
-â”‚   â”œâ”€â”€ App.tsx
-â”‚   â”œâ”€â”€ main.tsx
-â”‚   â””â”€â”€ router.tsx             # /, /library, /read/:bookId, /feed
-â”œâ”€â”€ CLAUDE.md                  # â† this file
-â”œâ”€â”€ vercel.json
-â”œâ”€â”€ vite.config.ts
-â””â”€â”€ package.json
+├── convex/
+│   ├── schema.ts              # 7 tables: users, books, readingProgress,
+│   │                          #   userPreferences, chronicles, follows, likes
+│   ├── books.ts
+│   ├── readingProgress.ts
+│   └── userPreferences.ts
+├── src/
+│   ├── components/
+│   │   ├── library/
+│   │   │   ├── BookCard.tsx
+│   │   │   └── BookUpload.tsx
+│   │   ├── reader/
+│   │   │   ├── ReaderChapterSheet.tsx
+│   │   │   ├── ReaderControls.tsx
+│   │   │   ├── ReaderNavigation.tsx
+│   │   │   ├── ReaderProgress.tsx
+│   │   │   ├── ReaderScrubSheet.tsx
+│   │   │   └── ReaderTimeline.tsx
+│   │   ├── social/
+│   │   │   ├── ChronicleActions.tsx
+│   │   │   ├── ChronicleCard.tsx
+│   │   │   ├── ChronicleComposer.tsx
+│   │   │   ├── ChronicleReplies.tsx
+│   │   │   ├── FeedHeader.tsx
+│   │   │   ├── FeedTimeline.tsx
+│   │   │   ├── ProfileBookGrid.tsx
+│   │   │   ├── ProfileSettings.tsx
+│   │   │   ├── ProfileSidebar.tsx
+│   │   │   └── UserAvatar.tsx
+│   │   └── ui/                # 14 shadcn/ui components
+│   ├── data/
+│   │   ├── mockFeed.ts        # 5 mock users, 10 chronicles
+│   │   └── mockReplies.ts     # 12 replies, user book collections
+│   ├── hooks/
+│   │   ├── useBookSettings.ts
+│   │   ├── useChapterProgress.ts
+│   │   ├── useChapters.ts
+│   │   ├── useEpub.ts
+│   │   ├── useIndexedDB.ts
+│   │   ├── useReadingProgress.ts
+│   │   └── useReadingSpeed.ts
+│   ├── lib/
+│   │   ├── db/
+│   │   │   ├── indexedDB.ts   # IndexedDBService (CRUD for all stores)
+│   │   │   └── schema.ts     # ShelvesDB v1: 6 object stores
+│   │   ├── epub/
+│   │   │   ├── epubLoader.ts
+│   │   │   └── epubParser.ts
+│   │   ├── theme/
+│   │   │   └── readingThemes.ts  # Paper, Night, Focus, Sepia
+│   │   └── utils/
+│   │       ├── cn.ts
+│   │       ├── fileHash.ts
+│   │       ├── relativeTime.ts
+│   │       └── utils.ts
+│   ├── pages/
+│   │   ├── Feed.tsx
+│   │   ├── Library.tsx
+│   │   └── Reader.tsx
+│   ├── types/
+│   │   ├── book.ts
+│   │   ├── epub.ts
+│   │   └── social.ts
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── router.tsx             # /, /library, /read/:bookId, /feed
+├── CLAUDE.md                  # ← this file
+├── vercel.json
+├── vite.config.ts
+└── package.json
 ```
 
 ### IndexedDB Stores (ShelvesDB v1)
@@ -155,7 +155,7 @@ flux-reader/
 
 ---
 
-## Storage Architecture â€” R2 + Convex Split
+## Storage Architecture — R2 + Convex Split
 
 **Principle:** Convex for fast, structured, real-time data. R2 for big, static blobs.
 
@@ -170,14 +170,14 @@ flux-reader/
 ### Data Flow
 
 **Book upload:**
-1. User selects ePub â†’ stored in IndexedDB immediately (local-first, works offline)
+1. User selects ePub → stored in IndexedDB immediately (local-first, works offline)
 2. Background sync: ePub uploaded to R2 via Convex action (presigned URL)
 3. Convex mutation creates/links book record in bookCatalog with R2 key
-4. Cover image extracted â†’ uploaded to R2 â†’ URL stored in Convex
+4. Cover image extracted → uploaded to R2 → URL stored in Convex
 
 **Reading progress:**
 1. CFI + percentage written to IndexedDB on every page turn (instant)
-2. Debounced sync (every 30s or on pause/close) â†’ Convex mutation
+2. Debounced sync (every 30s or on pause/close) → Convex mutation
 3. Convex record is the source of truth for social features (spoiler engine reads from here)
 
 **Video (Reels):**
@@ -187,78 +187,78 @@ flux-reader/
 4. Playback streams from R2 via Cloudflare CDN (or Cloudflare Stream for adaptive bitrate later)
 
 **Social content (Thoughts, Discussions):**
-- All text content lives in Convex â€” small, structured, needs real-time subscriptions
-- Image attachments on Thoughts â†’ R2 (Convex stores the R2 URL)
+- All text content lives in Convex — small, structured, needs real-time subscriptions
+- Image attachments on Thoughts → R2 (Convex stores the R2 URL)
 - Feeds assembled server-side in Convex queries with spoiler filtering baked in
 
 ---
 
-## Feature Roadmap (Phases 4â€“8)
+## Feature Roadmap (Phases 4–8)
 
-> Phases 1â€“3 are complete (reader core, library, social UI with mock data).
+> Phases 1–3 are complete (reader core, library, social UI with mock data).
 
-### Phase 4 â€” Convex Social Backend
+### Phase 4 — Convex Social Backend
 - Wire Chronicles, follows, likes to Convex mutations/queries
 - Replace mock data with real-time Convex subscriptions
 - Server-side feed assembly with pagination
 - Real-time like/reply/repost counts
 
-### Phase 5 â€” Auth (Clerk)
+### Phase 5 — Auth (Clerk)
 - Clerk integration with Convex
 - User creation flow, profile setup
 - Protected routes, session management
 
-### Phase 6 â€” Cross-Device Sync
-- IndexedDB â†” Convex sync engine (write-ahead log pattern)
+### Phase 6 — Cross-Device Sync
+- IndexedDB ↔ Convex sync engine (write-ahead log pattern)
 - R2 upload pipeline with presigned URLs
 - Lazy book hydration (metadata first, ePub on demand)
 - Offline queue with conflict resolution
 
-### Phase 7 â€” Reader Enhancements
+### Phase 7 — Reader Enhancements
 - Highlights & annotations synced to Convex
 - Reading streaks & statistics
 - Book recommendations based on library overlap
 - Spoiler engine (server-side filtering by reading progress)
 
-### Phase 8 â€” PWA & Polish
+### Phase 8 — PWA & Polish
 - Service worker for full offline support
 - Install prompt, push notifications
 - Video Reels pipeline (R2 + Cloudflare Stream)
 
 ---
 
-## Optimization Roadmap (Phases 1â€“5)
+## Optimization Roadmap (Phases 1–5)
 
 ### Optimization Phase 1: Foundation (wire-up phase)
 
-**IndexedDB â†” Convex sync engine:**
+**IndexedDB ↔ Convex sync engine:**
 - Write-ahead log pattern: all writes hit IndexedDB first, then queue for Convex sync
 - Conflict resolution: last-write-wins on reading progress (server timestamp), with client vector clock for edge cases
 - Offline queue: mutations stored in IndexedDB when offline, replayed on reconnect
 - Dedup: reading progress updates debounced to 30-second intervals
 
 **R2 upload pipeline:**
-- Convex action generates presigned PUT URLs â†’ client uploads directly to R2 (no proxying through Convex)
+- Convex action generates presigned PUT URLs → client uploads directly to R2 (no proxying through Convex)
 - Chunked uploads for large ePubs (>50MB) using R2 multipart upload
-- Dedup: hash the ePub (fileHash already computed) â†’ check if R2 key exists before uploading â†’ skip if duplicate
+- Dedup: hash the ePub (fileHash already computed) → check if R2 key exists before uploading → skip if duplicate
 - 1,000 users uploading the same bestseller = 1 R2 object, not 1,000
 
 **Lazy book hydration:**
 - New device sign-in: don't download all ePubs immediately
 - Sync book metadata + covers from Convex (tiny payload)
-- Download ePub from R2 only when user taps to read â†’ cache in IndexedDB
+- Download ePub from R2 only when user taps to read → cache in IndexedDB
 - Pre-fetch the next likely book (most recently read, highest progress but unfinished)
 
 ### Optimization Phase 2: Feed & Query (social launch)
 
 **Server-side spoiler filtering in Convex:**
 - Feed query joins readingProgress against content's bookId + spoilerLevel
-- Denormalize: store a `spoilerBracket` field (0â€“3) on content, store user's bracket per book in a materialized view â†’ simple integer comparison instead of percentage math
+- Denormalize: store a `spoilerBracket` field (0–3) on content, store user's bracket per book in a materialized view → simple integer comparison instead of percentage math
 - Pagination: cursor-based (by `createdAt` + `_id`), never offset-based
 
 **Feed assembly strategy:**
 - Fan-out-on-write pattern for home feed: when a user posts, a Convex scheduled function writes a reference to each follower's feed table
-- Read path: `SELECT * FROM feedItems WHERE userId = X ORDER BY createdAt DESC LIMIT 20` â€” fast, indexed, no joins
+- Read path: `SELECT * FROM feedItems WHERE userId = X ORDER BY createdAt DESC LIMIT 20` — fast, indexed, no joins
 - Fan-out capped: users with >10K followers switch to fan-out-on-read to avoid write amplification
 
 **Convex query caching:**
@@ -305,7 +305,7 @@ flux-reader/
 **Rate limiting & abuse prevention:**
 - Convex-side rate limits: max 10 thoughts/minute, max 3 video uploads/hour
 - R2 upload size limits enforced via presigned URL conditions
-- Content hash dedup: identical posts within 60s window â†’ reject
+- Content hash dedup: identical posts within 60s window → reject
 
 ### Optimization Phase 5: Advanced (at scale)
 
@@ -315,7 +315,7 @@ flux-reader/
 - Compact periodically: roll up events older than 30 days into the summary record
 - Feeds recommendation algorithms: "users who slow down at Chapter 7 also loved..."
 
-**Spoiler engine v2 â€” ML-assisted tagging:**
+**Spoiler engine v2 — ML-assisted tagging:**
 - Train a classifier on post text + book metadata to suggest/auto-assign spoiler brackets
 - Run as Convex action post-creation: if confidence > 0.9, auto-tag; otherwise flag for user confirmation
 
@@ -336,23 +336,23 @@ flux-reader/
 | Scale | Users | R2 Storage | R2 Ops | Convex | Est. Monthly |
 |-------|-------|-----------|--------|---------|--------------|
 | Launch | 1K | ~5 GB | Minimal | Free tier | ~$0 |
-| Early growth | 10K | ~100 GB | ~1M reads/mo | Pro tier | ~$50â€“80 |
-| Traction | 100K | ~2 TB | ~50M reads/mo | Pro + scale | ~$300â€“500 |
-| Scale | 1M | ~20 TB | ~500M reads/mo | Enterprise | ~$2â€“5K |
+| Early growth | 10K | ~100 GB | ~1M reads/mo | Pro tier | ~$50–80 |
+| Traction | 100K | ~2 TB | ~50M reads/mo | Pro + scale | ~$300–500 |
+| Scale | 1M | ~20 TB | ~500M reads/mo | Enterprise | ~$2–5K |
 
-R2 zero-egress model is critical â€” a social platform with video would be crushing on S3 egress fees. R2 makes Reels economically viable even at scale.
+R2 zero-egress model is critical — a social platform with video would be crushing on S3 egress fees. R2 makes Reels economically viable even at scale.
 
 ---
 
 ## Key Architecture Decisions
 
-1. **R2 for blobs, Convex for everything else** â€” clean separation, no ambiguity about where data lives
-2. **Presigned URLs for uploads** â€” client talks directly to R2, Convex never proxies large files
-3. **IndexedDB as local cache, not source of truth** â€” after auth wiring, Convex is canonical; IndexedDB is for offline/speed
-4. **ePub dedup by fileHash** â€” one copy per unique book in R2, regardless of how many users upload it
-5. **Spoiler filtering server-side** â€” never ship spoiler content to the client and hope JS hides it
-6. **Fan-out-on-write for feeds** â€” pre-compute feeds at write time, read path stays fast
-7. **Event-sourced reading progress** â€” enables analytics, recommendations, and the spoiler engine to evolve independently
+1. **R2 for blobs, Convex for everything else** — clean separation, no ambiguity about where data lives
+2. **Presigned URLs for uploads** — client talks directly to R2, Convex never proxies large files
+3. **IndexedDB as local cache, not source of truth** — after auth wiring, Convex is canonical; IndexedDB is for offline/speed
+4. **ePub dedup by fileHash** — one copy per unique book in R2, regardless of how many users upload it
+5. **Spoiler filtering server-side** — never ship spoiler content to the client and hope JS hides it
+6. **Fan-out-on-write for feeds** — pre-compute feeds at write time, read path stays fast
+7. **Event-sourced reading progress** — enables analytics, recommendations, and the spoiler engine to evolve independently
 
 ---
 

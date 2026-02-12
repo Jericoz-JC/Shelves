@@ -75,7 +75,10 @@ export function ChronicleCard({
               <div className="ml-auto">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-colors">
+                    <button
+                      type="button"
+                      className="flex items-center justify-center h-8 w-8 rounded-full text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-colors"
+                    >
                       <MoreHorizontal className="h-4 w-4" />
                     </button>
                   </DropdownMenuTrigger>

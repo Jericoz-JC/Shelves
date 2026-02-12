@@ -35,6 +35,14 @@ import {
 } from "@/components/ui/dialog";
 
 const CURRENT_USER_ID = "me";
+const DISCOVERY_LOADING_DELAY_MS = 320;
+
+function createLocalId(prefix: string): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
 
 function getFeedView(pathname: string): FeedView {
   if (pathname === "/feed/following") return "following";
@@ -55,6 +63,7 @@ export default function Feed() {
 
   const [posts, setPosts] = useState<Chronicle[]>(mockChronicles);
 
+  // TODO: Extract feed/follow/profile concerns into dedicated hooks as backend wiring lands.
   // Profile sidebar state
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -89,18 +98,16 @@ export default function Feed() {
   useRouteScrollRestoration(location.pathname);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setDiscoveryLoading(false), 320);
+    const timer = window.setTimeout(
+      () => setDiscoveryLoading(false),
+      DISCOVERY_LOADING_DELAY_MS
+    );
     return () => window.clearTimeout(timer);
   }, []);
 
   const handlePost = (text: string) => {
-    const chronicleId =
-      typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
-        ? crypto.randomUUID()
-        : `c-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
     const newChronicle: Chronicle = {
-      id: chronicleId,
+      id: createLocalId("c"),
       authorId: CURRENT_USER_ID,
       text,
       createdAt: Date.now(),
@@ -149,7 +156,7 @@ export default function Feed() {
 
   const handleReply = (chronicleId: string, text: string) => {
     const newReply: Reply = {
-      id: `r-${Date.now()}`,
+      id: createLocalId("r"),
       chronicleId,
       authorId: CURRENT_USER_ID,
       text,
