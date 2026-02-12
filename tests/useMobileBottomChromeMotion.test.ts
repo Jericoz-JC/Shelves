@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  clampToEndpoint,
   clamp,
   computeAdaptiveLerpFactor,
   computeTrackedOffset,
   computeViewportBottomAnchor,
+  shouldUnlockFromHidden,
 } from "@/hooks/useMobileBottomChromeMotion";
 
 describe("useMobileBottomChromeMotion helpers", () => {
@@ -39,6 +41,18 @@ describe("useMobileBottomChromeMotion helpers", () => {
     expect(slowAlpha).toBeGreaterThan(0);
     expect(fastAlpha).toBeLessThanOrEqual(1);
     expect(fastAlpha).toBeGreaterThan(slowAlpha);
+  });
+
+  it("ignores tiny upward jitter while hidden, unlocks after deadzone", () => {
+    expect(shouldUnlockFromHidden(-1, 2)).toBe(false);
+    expect(shouldUnlockFromHidden(-2, 2)).toBe(true);
+    expect(shouldUnlockFromHidden(-6, 2)).toBe(true);
+  });
+
+  it("clamps near-endpoint offsets to exact bounds", () => {
+    expect(clampToEndpoint(55.7, 56, 0.5)).toBe(56);
+    expect(clampToEndpoint(0.3, 56, 0.5)).toBe(0);
+    expect(clampToEndpoint(20, 56, 0.5)).toBe(20);
   });
 
   it("computes browser-ui bottom anchor from layout and visual viewport", () => {

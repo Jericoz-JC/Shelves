@@ -101,6 +101,7 @@ export default function Feed() {
     offsetPx: navTranslateYPx,
     composeTranslatePx,
     anchorBottomPx,
+    reservedBottomPx,
   } = useMobileBottomChromeMotion({
     peekPx: 0,
   });
@@ -362,6 +363,7 @@ export default function Feed() {
         onComposeClick={() => setComposeOpen(true)}
         navTranslateYPx={navTranslateYPx}
         navAnchorBottomPx={anchorBottomPx}
+        mobileBottomReservePx={reservedBottomPx}
         navRef={navRef}
         rightRail={
           <FeedRightRail
