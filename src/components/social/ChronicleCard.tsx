@@ -95,7 +95,7 @@ export function ChronicleCard({
               </div>
             )}
           </div>
-          <p className="text-[15px] leading-relaxed mt-1">{chronicle.text}</p>
+          <p className="text-[15px] leading-relaxed mt-1 select-text">{chronicle.text}</p>
           <ChronicleActions
             replyCount={chronicle.replyCount}
             repostCount={chronicle.repostCount}

@@ -54,7 +54,7 @@ export function ChronicleReplies({ replies, onReply, onAvatarClick }: ChronicleR
                   {relativeTime(reply.createdAt)}
                 </span>
               </div>
-              <p className="text-[14px] leading-relaxed mt-0.5">{reply.text}</p>
+              <p className="text-[14px] leading-relaxed mt-0.5 select-text">{reply.text}</p>
             </div>
           </div>
         );
