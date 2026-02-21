@@ -54,7 +54,7 @@ export function ChronicleCard({
 
   return (
     <div>
-      <div className="flex gap-3 px-4 py-3 border-b border-border/50 hover:bg-secondary/30 transition-colors">
+      <div className="flex gap-3 px-4 py-3 border-b border-border/50 [@media(hover:hover)]:hover:bg-secondary/30 [@media(hover:hover)]:transition-colors">
         <UserAvatar
           displayName={user.displayName}
           onClick={() => onAvatarClick(user.id)}
