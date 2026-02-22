@@ -21,6 +21,20 @@ A local-first ePub reader built with React, Vite, and epub.js. Books and reading
 Optional:
 - npm run build
 - npm run preview
+- npm run test
+- npm run test:progress
+
+## Reader Progress Harness
+- Start harness: `npm run dev:harness`
+- Open `http://localhost:5173/reader-harness`
+- Upload an `.epub`, then use `Prev` / `Next` to paginate
+- Live progress appears in `Progress:` and `CFI:` fields
+
+Automation entrypoint in browser console:
+- `window.__readerHarness.next()`
+- `window.__readerHarness.prev()`
+- `window.__readerHarness.getProgress()`
+- `window.__readerHarness.getCfi()`
 
 ## Data Storage
 - Local IndexedDB only (books, metadata, progress)

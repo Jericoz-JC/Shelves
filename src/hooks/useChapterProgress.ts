@@ -1,6 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Book, Rendition } from "epubjs";
 import type { ChapterItem } from "@/hooks/useChapters";
+import {
+  computeChapterPercentageFromBoundaries,
+  computePreciseBookPercentage,
+  isForwardMovement,
+  makeDirectionSnapshot,
+  type LocationDirectionSnapshot,
+  type SpineBoundaryMap,
+} from "@/lib/reader/progress";
 
 interface DisplayedLocation {
   start: {
@@ -14,14 +22,19 @@ interface DisplayedLocation {
 export function useChapterProgress(
   book: Book | null,
   rendition: Rendition | null,
-  chapters: ChapterItem[]
+  chapters: ChapterItem[],
+  spineBoundaries?: SpineBoundaryMap | null
 ) {
   const [location, setLocation] = useState<DisplayedLocation | null>(null);
+  const lastDirRef = useRef<LocationDirectionSnapshot | null>(null);
+  const prevChapterProgressRef = useRef<{ chapterIdx: number; value: number } | null>(null);
 
   useEffect(() => {
     if (!rendition) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocation(null);
+      lastDirRef.current = null;
+      prevChapterProgressRef.current = null;
       return;
     }
 
@@ -58,43 +71,47 @@ export function useChapterProgress(
   const chapterProgress = useMemo(() => {
     if (!book || !currentChapter || !location) return null;
 
-    const currentPercent = location.start.percentage;
-    if (Number.isFinite(currentPercent)) {
-      const startCfi = currentChapter.cfiBase;
-      const nextChapter = chapters[chapterIndex + 1];
-      const endCfi = nextChapter?.cfiBase;
-
-      const safePercentFromCfi = (cfi?: string) => {
-        if (!book.locations || !cfi || typeof cfi !== "string") return null;
-        try {
-          return book.locations.percentageFromCfi(cfi);
-        } catch {
-          return null;
-        }
-      };
-
-      if (book.locations && startCfi) {
-        const startPercent = safePercentFromCfi(startCfi);
-        const endPercent = endCfi ? safePercentFromCfi(endCfi) : 1;
-
-        if (
-          startPercent !== null &&
-          endPercent !== null &&
-          endPercent > startPercent
-        ) {
-          const raw = (currentPercent - startPercent) / (endPercent - startPercent);
-          return Math.min(Math.max(raw, 0), 1);
-        }
-      }
-    }
-
     const displayed = location.start.displayed;
-    if (displayed?.total) {
-      return displayed.page / displayed.total;
+    const nextChapter = chapters[chapterIndex + 1];
+
+    const currentBookPercentage = computePreciseBookPercentage(book, location.start, spineBoundaries);
+    let raw = computeChapterPercentageFromBoundaries(
+      book,
+      currentChapter.cfiBase,
+      nextChapter?.cfiBase,
+      currentBookPercentage,
+      spineBoundaries,
+      currentChapter.spineIndex,
+      nextChapter?.spineIndex
+    );
+
+    if (raw == null && displayed?.total) {
+      raw = displayed.page / displayed.total;
+    }
+    if (raw == null) return null;
+
+    // Forward-detection + epsilon bump: if the user paged forward within the
+    // same chapter but the raw chapter progress didn't increase (e.g. trailing
+    // empty CSS column where displayed.page stays the same), nudge it up so
+    // the bar keeps moving.
+    const snapshot = makeDirectionSnapshot(location.start, currentBookPercentage);
+    const prev = lastDirRef.current;
+    const prevCh = prevChapterProgressRef.current;
+    lastDirRef.current = { ...snapshot, percentage: currentBookPercentage };
+
+    if (
+      prevCh &&
+      prevCh.chapterIdx === chapterIndex &&
+      prev &&
+      isForwardMovement(prev, snapshot) &&
+      raw <= prevCh.value
+    ) {
+      raw = Math.min(1, prevCh.value + 0.01);
     }
 
-    return null;
-  }, [book, currentChapter, chapters, chapterIndex, location]);
+    prevChapterProgressRef.current = { chapterIdx: chapterIndex, value: raw };
+    return raw;
+  }, [book, currentChapter, chapters, chapterIndex, location, spineBoundaries]);
 
   return {
     location,

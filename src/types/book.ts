@@ -20,6 +20,8 @@ export interface BookLocations {
   bookHash: string;
   locations: string;
   createdAt: number;
+  locationVersion?: number;
+  locationBreak?: number;
 }
 
 export interface BookSettings {
@@ -36,6 +38,15 @@ export interface ReaderNote {
   createdAt: number;
   updatedAt: number;
   percentage?: number | null;
+}
+
+export interface ReaderBookmark {
+  id: string;
+  bookHash: string;
+  cfi: string;
+  chapter: string | null;
+  percentage: number | null;
+  createdAt: number;
 }
 
 export interface StoredBook {

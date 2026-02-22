@@ -9,9 +9,11 @@ import { useReadingSpeed } from "@/hooks/useReadingSpeed";
 import { useChapters } from "@/hooks/useChapters";
 import { useChapterProgress } from "@/hooks/useChapterProgress";
 import { useBookSettings } from "@/hooks/useBookSettings";
+import { useReaderBookmarks } from "@/hooks/useReaderBookmarks";
 import { ReaderControls } from "@/components/reader/ReaderControls";
 import { ReaderChapterSheet } from "@/components/reader/ReaderChapterSheet";
 import { ReaderNavigation } from "@/components/reader/ReaderNavigation";
+import { ReaderBookmarkSheet } from "@/components/reader/ReaderBookmarkSheet";
 import { ReaderProgress } from "@/components/reader/ReaderProgress";
 import { ReaderScrubSheet } from "@/components/reader/ReaderScrubSheet";
 import { IndexedDBService } from "@/lib/db/indexedDB";
@@ -34,7 +36,7 @@ export default function Reader() {
   const [fontSize, setFontSize] = useState(FONT_SIZE_DEFAULT);
   const [fontFamily, setFontFamily] = useState<string>(FONT_FAMILIES[0].value);
 
-  const { book, rendition, loading, indexing, error, viewerRef, goNext, goPrev, goToLocation } =
+  const { book, rendition, loading, indexing, error, viewerRef, spineBoundaries, goNext, goPrev, goToLocation } =
     useEpub(arrayBuffer, {
       bookHash: bookId ?? undefined,
       theme,
@@ -45,14 +47,22 @@ export default function Reader() {
   const { progress } = useReadingProgress({
     bookHash: bookId ?? null,
     rendition,
+    book,
+    spineBoundaries,
   });
 
   const { settings, saveSettings } = useBookSettings(bookId ?? null);
   const disableBottomScrubber = settings?.disableBottomScrubber ?? false;
+  const { bookmarks, loading: bookmarksLoading, addBookmark, removeBookmark } =
+    useReaderBookmarks(bookId ?? null);
 
   const readingSpeed = useReadingSpeed(rendition);
   const chapters = useChapters(book);
-  const chapterProgress = useChapterProgress(book, rendition, chapters);
+  const chapterProgress = useChapterProgress(book, rendition, chapters, spineBoundaries);
+  const currentBookmarkCfi = chapterProgress.location?.start.cfi ?? progress?.currentCFI ?? null;
+  const currentBookmarkPercentage =
+    chapterProgress.location?.start.percentage ?? progress?.percentage ?? null;
+  const currentBookmarkChapter = chapterProgress.currentChapter?.label ?? null;
 
   // Load book from IndexedDB
   useEffect(() => {
@@ -72,6 +82,20 @@ export default function Reader() {
   const handleCenterTap = useCallback(() => {
     setShowControls((prev) => !prev);
   }, []);
+
+  const handleAddCurrentBookmark = useCallback(() => {
+    if (!currentBookmarkCfi) return;
+    void addBookmark({
+      cfi: currentBookmarkCfi,
+      chapter: currentBookmarkChapter,
+      percentage: currentBookmarkPercentage,
+    });
+  }, [
+    addBookmark,
+    currentBookmarkCfi,
+    currentBookmarkChapter,
+    currentBookmarkPercentage,
+  ]);
 
 
   // Keyboard navigation
@@ -159,6 +183,17 @@ export default function Reader() {
                 if (cfi) {
                   goToLocation(cfi);
                 }
+              }}
+            />
+            <ReaderBookmarkSheet
+              theme={theme}
+              bookmarks={bookmarks}
+              loading={bookmarksLoading}
+              canAddCurrentBookmark={Boolean(currentBookmarkCfi)}
+              onAddCurrentBookmark={handleAddCurrentBookmark}
+              onNavigate={(target) => rendition?.display(target)}
+              onDelete={(bookmarkId) => {
+                void removeBookmark(bookmarkId);
               }}
             />
             <ReaderControls

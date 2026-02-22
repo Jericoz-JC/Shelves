@@ -20,7 +20,13 @@ export function ReaderProgress({
   etaMinutes,
 }: ReaderProgressProps) {
   const safePercentage = Number.isFinite(percentage) ? percentage : 0;
-  const displayPercent = Math.round(safePercentage * 100);
+  const percentValue = safePercentage * 100;
+  // Show extra precision at the low end so front-matter progress is visible
+  const displayPercent =
+    percentValue < 1
+      ? percentValue.toFixed(1)   // e.g. "0.4"
+      : String(Math.round(percentValue));  // e.g. "3"
+  const barValue = Math.max(percentValue, percentValue > 0 ? 0.5 : 0); // min visible bar width
   const displayChapter =
     typeof chapterIndex === "number" && totalChapters
       ? `Chapter ${chapterIndex + 1} / ${totalChapters}`
@@ -52,7 +58,7 @@ export function ReaderProgress({
       </div>
 
       <div className="mt-3 flex items-center gap-3">
-        <Progress value={displayPercent} className="reading-progress h-1 flex-1" />
+        <Progress value={barValue} className="reading-progress h-1 flex-1" />
         <span className="text-xs tabular-nums text-[color:var(--reading-text)] opacity-60 min-w-[3ch] text-right">
           {displayPercent}%
         </span>

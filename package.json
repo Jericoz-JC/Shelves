@@ -8,10 +8,12 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:harness": "vite --open /reader-harness",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:progress": "vitest run tests/useReadingProgress.test.tsx tests/useChapterProgress.test.tsx"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
@@ -31,18 +33,19 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "@tailwindcss/postcss": "^4.1.18",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.0",
     "autoprefixer": "^10.4.24",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "jsdom": "^27.0.1",
+    "playwright": "^1.58.2",
     "postcss": "^8.5.6",
     "shadcn": "^3.8.4",
     "tailwindcss": "^4.1.18",
