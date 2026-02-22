@@ -90,14 +90,7 @@ export function useChapterProgress(
       }
 
       const spineIndex = loc.start.index;
-      let locChapterIndex = -1;
-      for (let i = 0; i < chapters.length; i += 1) {
-        if (chapters[i].spineIndex <= spineIndex) {
-          locChapterIndex = i;
-        } else {
-          break;
-        }
-      }
+      const locChapterIndex = resolveChapterIndexFromSpine(spineIndex, chapters);
 
       if (locChapterIndex < 0) {
         setChapterProgress(null);
