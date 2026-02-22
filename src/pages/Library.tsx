@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { BookOpen, ScrollText } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
 
 export default function Library() {
   const { books, loading, refresh, deleteBook } = useLibrary();
@@ -19,6 +20,16 @@ export default function Library() {
             Shelves
           </h1>
           <div className="flex items-center gap-2">
+            <SignedOut>
+              <SignInButton mode="modal">
+                <Button variant="secondary" size="default">
+                  Log-In
+                </Button>
+              </SignInButton>
+            </SignedOut>
+            <SignedIn>
+              <UserButton />
+            </SignedIn>
             <Button asChild variant="secondary" size="default">
               <Link to="/feed">
                 <ScrollText className="mr-2 h-4 w-4" />

@@ -1,18 +1,20 @@
-import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
+import { requireAuthenticatedUserId } from "./lib/auth";
 
 export const updatePreferences = mutation({
   args: {
-    userId: v.string(),
     theme: v.string(),
     fontSize: v.number(),
     fontFamily: v.string(),
     lineHeight: v.number(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireAuthenticatedUserId(ctx);
+
     const existing = await ctx.db
       .query("userPreferences")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .unique();
 
     if (existing) {
@@ -25,16 +27,23 @@ export const updatePreferences = mutation({
       return existing._id;
     }
 
-    return await ctx.db.insert("userPreferences", args);
+    return ctx.db.insert("userPreferences", {
+      userId,
+      theme: args.theme,
+      fontSize: args.fontSize,
+      fontFamily: args.fontFamily,
+      lineHeight: args.lineHeight,
+    });
   },
 });
 
 export const getPreferences = query({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireAuthenticatedUserId(ctx);
+    return ctx.db
       .query("userPreferences")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .unique();
   },
 });

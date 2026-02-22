@@ -1,9 +1,8 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import type { Book, Rendition } from "epubjs";
 import { api } from "../../convex/_generated/api";
 import { IndexedDBService } from "@/lib/db/indexedDB";
-import { getTempUserId } from "@/lib/utils/tempUserId";
 import type { BookProgress } from "@/types/book";
 import {
   computePreciseBookPercentage,
@@ -35,8 +34,6 @@ export function useReadingProgress({
   const convexTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasRestoredRef = useRef(false);
   const lastDirectionRef = useRef<LocationDirectionSnapshot | null>(null);
-  // Stable userId ref — getTempUserId reads localStorage; memoized for component lifetime
-  const userIdRef = useRef(getTempUserId());
 
   const updateProgressMutation = useMutation(api.readingProgress.updateProgress);
 
@@ -46,18 +43,20 @@ export function useReadingProgress({
 
     hasRestoredRef.current = false;
     lastDirectionRef.current = null;
-    IndexedDBService.getProgress(bookHash).then((saved) => {
-      if (saved) {
-        setProgress(saved);
-        lastDirectionRef.current = {
-          index: null,
-          page: null,
-          percentage: saved.percentage,
-        };
-      }
-    }).catch((err) => {
-      console.error("Failed to restore reader progress:", err);
-    });
+    IndexedDBService.getProgress(bookHash)
+      .then((saved) => {
+        if (saved) {
+          setProgress(saved);
+          lastDirectionRef.current = {
+            index: null,
+            page: null,
+            percentage: saved.percentage,
+          };
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to restore reader progress:", err);
+      });
   }, [bookHash]);
 
   // Navigate to saved position when rendition + progress both ready
@@ -71,17 +70,16 @@ export function useReadingProgress({
     (newProgress: BookProgress) => {
       setProgress(newProgress);
 
-      // 1s debounce → IndexedDB
+      // 1s debounce to IndexedDB
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         IndexedDBService.saveProgress(newProgress);
       }, debounceMs);
 
-      // 30s debounce → Convex
+      // 30s debounce to Convex
       if (convexTimerRef.current) clearTimeout(convexTimerRef.current);
       convexTimerRef.current = setTimeout(() => {
         updateProgressMutation({
-          userId: userIdRef.current,
           bookHash: newProgress.bookHash,
           currentCFI: newProgress.currentCFI ?? undefined,
           percentage: newProgress.percentage,
