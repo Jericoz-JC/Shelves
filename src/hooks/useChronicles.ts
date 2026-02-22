@@ -9,6 +9,13 @@ const SEEDED_KEY = "shelves-chronicles-seeded";
 
 const CURRENT_USER_ID = "me";
 
+function generateId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
+
 export interface NewChronicleDraft {
   text: string;
   highlightText?: string;
@@ -83,7 +90,7 @@ export function useChronicles(): ChroniclesHook {
 
   const addChronicle = (draft: NewChronicleDraft) => {
     const newChronicle: Chronicle = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       authorId: CURRENT_USER_ID,
       text: draft.text,
       highlightText: draft.highlightText,
@@ -148,7 +155,7 @@ export function useChronicles(): ChroniclesHook {
 
   const addReply = (chronicleId: string, text: string): Reply => {
     const newReply: Reply = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       chronicleId,
       authorId: CURRENT_USER_ID,
       text,

@@ -100,17 +100,17 @@ export default function Reader() {
   }, [hasActiveSelection, dismissToolbar]);
 
 
-  // Dismiss highlight toolbar when user touches outside it — skip while share sheet is open
+  // Dismiss highlight toolbar on outside taps — skip while share sheet is open,
+  // and skip taps that land inside the tooltip itself (capture fires before
+  // the tooltip's onTouchStart stopPropagation, so we check the target here).
   useEffect(() => {
     if (shareOpen) return;
-    document.addEventListener("touchstart", dismissToolbar, {
-      capture: true,
-      passive: true,
-    });
-    return () =>
-      document.removeEventListener("touchstart", dismissToolbar, {
-        capture: true,
-      });
+    const handler = (e: TouchEvent) => {
+      if ((e.target as Element | null)?.closest("[data-highlight-tooltip]")) return;
+      dismissToolbar();
+    };
+    document.addEventListener("touchstart", handler, { capture: true, passive: true });
+    return () => document.removeEventListener("touchstart", handler, { capture: true });
   }, [dismissToolbar, shareOpen]);
 
   // Keyboard navigation

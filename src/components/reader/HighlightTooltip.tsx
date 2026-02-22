@@ -34,6 +34,7 @@ export function HighlightTooltip({
 
   return (
     <div
+      data-highlight-tooltip
       className="fixed z-50 pointer-events-auto"
       style={{ top, left, transform: "translateX(-50%)" }}
       onTouchStart={(e) => e.stopPropagation()}
