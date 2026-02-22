@@ -60,10 +60,13 @@ export function getThemeCSS(
       "line-height": "1.7",
       padding: "0 1rem",
       "-webkit-tap-highlight-color": "transparent",
-      "user-select": "text",
-      "-webkit-user-select": "text",
     },
-    "::selection": {
+    "body, body *": {
+      "user-select": "text !important",
+      "-webkit-user-select": "text !important",
+      "-moz-user-select": "text !important",
+    },
+    "body::selection, body *::selection": {
       "background-color": config.selectionBg,
     },
     "a, a:link, a:visited": {
