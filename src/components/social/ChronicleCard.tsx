@@ -95,7 +95,9 @@ export function ChronicleCard({
               </div>
             )}
           </div>
-          <p className="text-[15px] leading-relaxed mt-1">{chronicle.text}</p>
+          {chronicle.text && (
+            <p className="text-[15px] leading-relaxed mt-1">{chronicle.text}</p>
+          )}
           {chronicle.highlightText && (
             <div className="mt-2 rounded-lg border border-border/60 bg-secondary/30 overflow-hidden">
               <div className="flex">

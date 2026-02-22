@@ -115,7 +115,7 @@ export function useChronicles(): ChroniclesHook {
           ? {
               ...p,
               isLiked: !p.isLiked,
-              likeCount: p.isLiked ? p.likeCount - 1 : p.likeCount + 1,
+              likeCount: p.isLiked ? Math.max(0, p.likeCount - 1) : p.likeCount + 1,
             }
           : p
       )
@@ -129,7 +129,7 @@ export function useChronicles(): ChroniclesHook {
           ? {
               ...p,
               isReposted: !p.isReposted,
-              repostCount: p.isReposted ? p.repostCount - 1 : p.repostCount + 1,
+              repostCount: p.isReposted ? Math.max(0, p.repostCount - 1) : p.repostCount + 1,
             }
           : p
       )

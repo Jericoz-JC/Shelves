@@ -6,10 +6,6 @@
  * Swap the import in Feed.tsx and Reader.tsx when Phase 4 auth wiring begins.
  *
  * TODO before activating:
- *   - Extend convex/schema.ts chronicles table with:
- *       highlightText: v.optional(v.string()),
- *       bookTitle: v.optional(v.string()),
- *     (bookRef already exists and maps to bookHash)
  *   - Wire Clerk userId into ctx.auth in each mutation.
  */
 
@@ -45,6 +41,8 @@ export const create = mutation({
     return ctx.db.insert("chronicles", {
       authorId,
       text: args.text,
+      highlightText: args.highlightText,
+      bookTitle: args.bookTitle,
       bookRef: args.bookRef,
       spoilerTag: args.spoilerTag,
       likeCount: 0,

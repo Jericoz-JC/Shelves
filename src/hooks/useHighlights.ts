@@ -88,7 +88,7 @@ export function useHighlights(
     }
 
     void loadHighlights();
-  }, [rendition, bookHash]);
+  }, [rendition, bookHash, theme]);
 
   // Wire selection and markClicked events
   useEffect(() => {
