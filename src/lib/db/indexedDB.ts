@@ -9,6 +9,7 @@ import {
   type BookLocations,
   type BookSettings,
   type ReaderNote,
+  type ReaderBookmark,
 } from "./schema";
 
 function getDB(): Promise<IDBPDatabase> {
@@ -28,6 +29,10 @@ function getDB(): Promise<IDBPDatabase> {
       }
       if (!db.objectStoreNames.contains(STORES.NOTES)) {
         const store = db.createObjectStore(STORES.NOTES, { keyPath: "id" });
+        store.createIndex("by_book", "bookHash");
+      }
+      if (!db.objectStoreNames.contains(STORES.BOOKMARKS)) {
+        const store = db.createObjectStore(STORES.BOOKMARKS, { keyPath: "id" });
         store.createIndex("by_book", "bookHash");
       }
       if (!db.objectStoreNames.contains(STORES.SETTINGS)) {
@@ -71,6 +76,7 @@ export const IndexedDBService = {
         STORES.PROGRESS,
         STORES.LOCATIONS,
         STORES.NOTES,
+        STORES.BOOKMARKS,
         STORES.SETTINGS,
       ],
       "readwrite"
@@ -87,6 +93,11 @@ export const IndexedDBService = {
       const keys = await notesStore.index("by_book").getAllKeys(fileHash);
       await Promise.all(keys.map((key) => notesStore.delete(key)));
     }
+    const bookmarksStore = tx.objectStore(STORES.BOOKMARKS);
+    if (bookmarksStore.indexNames.contains("by_book")) {
+      const keys = await bookmarksStore.index("by_book").getAllKeys(fileHash);
+      await Promise.all(keys.map((key) => bookmarksStore.delete(key)));
+    }
     await tx.done;
   },
 
@@ -102,21 +113,29 @@ export const IndexedDBService = {
     >;
   },
 
-  async saveLocations(bookHash: string, locations: string): Promise<void> {
+  async saveLocations(
+    bookHash: string,
+    locations: string,
+    options?: { locationVersion?: number; locationBreak?: number }
+  ): Promise<void> {
     const db = await getDB();
     const payload: BookLocations = {
       bookHash,
       locations,
       createdAt: Date.now(),
+      locationVersion: options?.locationVersion,
+      locationBreak: options?.locationBreak,
     };
     await db.put(STORES.LOCATIONS, payload);
   },
 
-  async getLocations(bookHash: string): Promise<string | undefined> {
+  async getLocationsRecord(bookHash: string): Promise<BookLocations | undefined> {
     const db = await getDB();
-    const record = (await db.get(STORES.LOCATIONS, bookHash)) as
-      | BookLocations
-      | undefined;
+    return db.get(STORES.LOCATIONS, bookHash) as Promise<BookLocations | undefined>;
+  },
+
+  async getLocations(bookHash: string): Promise<string | undefined> {
+    const record = await this.getLocationsRecord(bookHash);
     return record?.locations;
   },
 
@@ -149,5 +168,24 @@ export const IndexedDBService = {
   async deleteNote(noteId: string): Promise<void> {
     const db = await getDB();
     await db.delete(STORES.NOTES, noteId);
+  },
+
+  async getBookmarks(bookHash: string): Promise<ReaderBookmark[]> {
+    const db = await getDB();
+    const store = db.transaction(STORES.BOOKMARKS).objectStore(STORES.BOOKMARKS);
+    if (store.indexNames.contains("by_book")) {
+      return (await store.index("by_book").getAll(bookHash)) as ReaderBookmark[];
+    }
+    return (await store.getAll()) as ReaderBookmark[];
+  },
+
+  async saveBookmark(bookmark: ReaderBookmark): Promise<void> {
+    const db = await getDB();
+    await db.put(STORES.BOOKMARKS, bookmark);
+  },
+
+  async deleteBookmark(bookmarkId: string): Promise<void> {
+    const db = await getDB();
+    await db.delete(STORES.BOOKMARKS, bookmarkId);
   },
 };
