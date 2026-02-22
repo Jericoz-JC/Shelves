@@ -47,8 +47,11 @@ export function ChronicleCard({
 }: ChronicleCardProps) {
   const [showReplies, setShowReplies] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const user = getUserById(chronicle.authorId);
-  if (!user) return null;
+  const user = getUserById(chronicle.authorId) ?? {
+    id: chronicle.authorId,
+    displayName: chronicle.authorId === currentUserId ? "You" : "Reader",
+    handle: chronicle.authorId === currentUserId ? "you" : "reader",
+  };
 
   const isOwn = chronicle.authorId === currentUserId;
 

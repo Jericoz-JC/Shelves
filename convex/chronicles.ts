@@ -1,20 +1,24 @@
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 
 const LIST_DEFAULT_LIMIT = 20;
 const REPLIES_DEFAULT_LIMIT = 50;
 const REPLIES_MAX_LIMIT = 100;
+
+async function requireAuthenticatedUserId(ctx: QueryCtx | MutationCtx): Promise<string> {
+  const identity = await ctx.auth.getUserIdentity();
+  if (!identity) {
+    throw new Error("Unauthorized");
+  }
+  return identity.subject;
+}
 
 export const list = query({
   args: {
     limit: v.optional(v.number()),
   },
   handler: async (ctx, { limit = LIST_DEFAULT_LIMIT }) => {
-    return ctx.db
-      .query("chronicles")
-      .withIndex("by_created")
-      .order("desc")
-      .take(limit);
+    return ctx.db.query("chronicles").withIndex("by_created").order("desc").take(limit);
   },
 });
 
@@ -26,17 +30,13 @@ export const listReplies = query({
   handler: async (ctx, { parentId, limit = REPLIES_DEFAULT_LIMIT }) =>
     ctx.db
       .query("chronicles")
-      .withIndex("by_parent_chronicle", (q) =>
-        q.eq("parentChronicleId", parentId)
-      )
+      .withIndex("by_parent_chronicle", (q) => q.eq("parentChronicleId", parentId))
       .order("asc")
       .take(Math.min(limit, REPLIES_MAX_LIMIT)),
 });
 
 export const create = mutation({
   args: {
-    // TODO: replace client-supplied userId with authenticated session identity (Clerk) before production
-    userId: v.string(),
     text: v.string(),
     highlightText: v.optional(v.string()),
     bookTitle: v.optional(v.string()),
@@ -44,8 +44,9 @@ export const create = mutation({
     spoilerTag: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireAuthenticatedUserId(ctx);
     return ctx.db.insert("chronicles", {
-      authorId: args.userId,
+      authorId: userId,
       text: args.text,
       highlightText: args.highlightText,
       bookTitle: args.bookTitle,
@@ -62,10 +63,10 @@ export const create = mutation({
 export const like = mutation({
   args: {
     chronicleId: v.id("chronicles"),
-    // TODO: replace client-supplied userId with authenticated session identity (Clerk) before production
-    userId: v.string(),
   },
-  handler: async (ctx, { chronicleId, userId }) => {
+  handler: async (ctx, { chronicleId }) => {
+    const userId = await requireAuthenticatedUserId(ctx);
+
     const existing = await ctx.db
       .query("likes")
       .withIndex("by_user_and_chronicle", (q) =>
@@ -91,10 +92,10 @@ export const like = mutation({
 export const repost = mutation({
   args: {
     chronicleId: v.id("chronicles"),
-    // TODO: replace client-supplied userId with authenticated session identity (Clerk) before production
-    userId: v.string(),
   },
-  handler: async (ctx, { chronicleId, userId }) => {
+  handler: async (ctx, { chronicleId }) => {
+    const userId = await requireAuthenticatedUserId(ctx);
+
     const existing = await ctx.db
       .query("reposts")
       .withIndex("by_user_and_chronicle", (q) =>
@@ -120,10 +121,10 @@ export const repost = mutation({
 export const bookmark = mutation({
   args: {
     chronicleId: v.id("chronicles"),
-    // TODO: replace client-supplied userId with authenticated session identity (Clerk) before production
-    userId: v.string(),
   },
-  handler: async (ctx, { chronicleId, userId }) => {
+  handler: async (ctx, { chronicleId }) => {
+    const userId = await requireAuthenticatedUserId(ctx);
+
     const existing = await ctx.db
       .query("bookmarks")
       .withIndex("by_user_and_chronicle", (q) =>
@@ -142,20 +143,29 @@ export const bookmark = mutation({
 export const remove = mutation({
   args: {
     chronicleId: v.id("chronicles"),
-    // TODO: replace client-supplied userId with authenticated session identity (Clerk) before production
-    userId: v.string(),
   },
-  handler: async (ctx, { chronicleId, userId }) => {
+  handler: async (ctx, { chronicleId }) => {
+    const userId = await requireAuthenticatedUserId(ctx);
+
     const chronicle = await ctx.db.get(chronicleId);
     if (!chronicle) return;
     if (chronicle.authorId !== userId) return;
 
-    // Cascade-delete orphaned likes, reposts, bookmarks, and direct child replies
+    // Cascade-delete orphaned likes, reposts, bookmarks, and direct child replies.
     const [likes, reposts, bookmarks, childReplies] = await Promise.all([
       ctx.db.query("likes").withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId)).collect(),
-      ctx.db.query("reposts").withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId)).collect(),
-      ctx.db.query("bookmarks").withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId)).collect(),
-      ctx.db.query("chronicles").withIndex("by_parent_chronicle", (q) => q.eq("parentChronicleId", chronicleId)).collect(),
+      ctx.db
+        .query("reposts")
+        .withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId))
+        .collect(),
+      ctx.db
+        .query("bookmarks")
+        .withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId))
+        .collect(),
+      ctx.db
+        .query("chronicles")
+        .withIndex("by_parent_chronicle", (q) => q.eq("parentChronicleId", chronicleId))
+        .collect(),
     ]);
 
     await Promise.all([
@@ -173,11 +183,11 @@ export const addReply = mutation({
   args: {
     parentChronicleId: v.id("chronicles"),
     text: v.string(),
-    // TODO: replace client-supplied userId with authenticated session identity (Clerk) before production
-    userId: v.string(),
   },
-  handler: async (ctx, { parentChronicleId, text, userId }) => {
-    // Validate parent exists before inserting to avoid orphaned replies
+  handler: async (ctx, { parentChronicleId, text }) => {
+    const userId = await requireAuthenticatedUserId(ctx);
+
+    // Validate parent exists before inserting to avoid orphaned replies.
     const parent = await ctx.db.get(parentChronicleId);
     if (!parent) throw new Error("Parent chronicle not found");
 

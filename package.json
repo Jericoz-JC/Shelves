@@ -16,6 +16,7 @@
     "test:progress": "vitest run tests/useReadingProgress.test.tsx tests/useChapterProgress.test.tsx"
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.61.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "convex": "^1.31.7",

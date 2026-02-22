@@ -29,14 +29,11 @@ export function ChronicleReplies({ replies, onReply, onAvatarClick }: ChronicleR
         </p>
       )}
       {replies.map((reply) => {
-        const user = getUserById(reply.authorId);
-        if (!user) {
-          if (import.meta.env.DEV) {
-            // Helps identify orphaned mock/live reply records during development.
-            console.warn(`Missing user for reply ${reply.id} (${reply.authorId})`);
-          }
-          return null;
-        }
+        const user = getUserById(reply.authorId) ?? {
+          id: reply.authorId,
+          displayName: "Reader",
+          handle: "reader",
+        };
         return (
           <div key={reply.id} className="flex gap-2 py-2">
             <UserAvatar
