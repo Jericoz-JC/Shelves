@@ -1,5 +1,5 @@
+import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
-import type { GenericId } from "convex/values";
 import { api } from "../../convex/_generated/api";
 import { getTempUserId } from "@/lib/utils/tempUserId";
 import type { Reply } from "@/types/social";
@@ -9,6 +9,7 @@ export function useConvexChronicles(): ChroniclesHook {
   const userId = getTempUserId();
 
   const rawChronicles = useQuery(api.chronicles.list, { limit: 50 }) ?? [];
+  const [localReplies, setLocalReplies] = useState<Record<string, Reply[]>>({});
 
   const createMutation   = useMutation(api.chronicles.create);
   const likeMutation     = useMutation(api.chronicles.like);
@@ -18,8 +19,9 @@ export function useConvexChronicles(): ChroniclesHook {
   const replyMutation    = useMutation(api.chronicles.addReply);
 
   const chronicles = rawChronicles.map((doc) => ({
-    id: doc._id as string,
-    authorId: doc.authorId,
+    id: doc._id,
+    // Map the current user's UUID back to "me" so ownership checks in the UI work
+    authorId: doc.authorId === userId ? "me" : doc.authorId,
     text: doc.text,
     createdAt: doc.createdAt,
     likeCount: doc.likeCount,
@@ -37,7 +39,7 @@ export function useConvexChronicles(): ChroniclesHook {
 
   return {
     chronicles,
-    replies: {},
+    replies: localReplies,
 
     addChronicle: (draft: NewChronicleDraft) => {
       void createMutation({
@@ -51,34 +53,38 @@ export function useConvexChronicles(): ChroniclesHook {
     },
 
     likeChronicle: (id: string) => {
-      void likeMutation({ chronicleId: id as GenericId<"chronicles">, userId });
+      void likeMutation({ chronicleId: id, userId });
     },
 
     repostChronicle: (id: string) => {
-      void repostMutation({ chronicleId: id as GenericId<"chronicles">, userId });
+      void repostMutation({ chronicleId: id, userId });
     },
 
     bookmarkChronicle: (id: string) => {
-      void bookmarkMutation({ chronicleId: id as GenericId<"chronicles">, userId });
+      void bookmarkMutation({ chronicleId: id, userId });
     },
 
     deleteChronicle: (id: string) => {
-      void removeMutation({ chronicleId: id as GenericId<"chronicles">, userId });
+      void removeMutation({ chronicleId: id, userId });
     },
 
     addReply: (chronicleId: string, text: string): Reply => {
-      void replyMutation({
-        parentChronicleId: chronicleId as GenericId<"chronicles">,
-        text,
-        userId,
-      });
-      return {
+      void replyMutation({ parentChronicleId: chronicleId, text, userId });
+
+      const newReply: Reply = {
         id: crypto.randomUUID(),
         chronicleId,
-        authorId: userId,
+        authorId: "me",
         text,
         createdAt: Date.now(),
       };
+
+      setLocalReplies((prev) => ({
+        ...prev,
+        [chronicleId]: [newReply, ...(prev[chronicleId] ?? [])],
+      }));
+
+      return newReply;
     },
   };
 }
