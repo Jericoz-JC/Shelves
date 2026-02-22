@@ -66,7 +66,7 @@ export function getThemeCSS(
       "-webkit-user-select": "text !important",
       "-moz-user-select": "text !important",
     },
-    "body::selection, body *::selection": {
+    "::selection": {
       "background-color": config.selectionBg,
     },
     "a, a:link, a:visited": {
