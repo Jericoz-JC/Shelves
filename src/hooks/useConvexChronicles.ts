@@ -8,7 +8,7 @@ import type { ChroniclesHook, NewChronicleDraft } from "./useChronicles";
 
 export function useConvexChronicles(): ChroniclesHook {
   const { userId } = useAuth();
-  const { isAuthenticated } = useConvexAuth();
+  const { isAuthenticated, isLoading } = useConvexAuth();
   const { openSignIn } = useClerk();
   const rawChronicles = useQuery(api.chronicles.list, { limit: 50 }) ?? [];
 
@@ -45,7 +45,8 @@ export function useConvexChronicles(): ChroniclesHook {
 
   const ensureAuthenticatedForWrite = () => {
     if (isAuthenticated) return true;
-    void openSignIn();
+    // Don't prompt sign-in while the Convex JWT is still propagating.
+    if (!isLoading) void openSignIn();
     return false;
   };
 
@@ -103,10 +104,11 @@ export function useConvexChronicles(): ChroniclesHook {
     },
 
     addReply: (chronicleId: string, text: string): Reply => {
-      const newReply = buildOptimisticReply(chronicleId, text);
       if (!ensureAuthenticatedForWrite()) {
-        return newReply;
+        return { id: "", chronicleId, authorId: "me", text, createdAt: 0 };
       }
+
+      const newReply = buildOptimisticReply(chronicleId, text);
 
       setLocalReplies((prev) => ({
         ...prev,

@@ -44,17 +44,19 @@ Until step 3 completes, `useConvexAuth().isAuthenticated` remains `false` even t
 + import { useConvexAuth, useMutation, useQuery } from "convex/react";
 
   const { userId } = useAuth();
-+ const { isAuthenticated } = useConvexAuth();
++ const { isAuthenticated, isLoading } = useConvexAuth();
 
   const ensureAuthenticatedForWrite = () => {
 -   if (userId) return true;
+-   void openSignIn();
 +   if (isAuthenticated) return true;
-    void openSignIn();
++   // Don't prompt sign-in while the Convex JWT is still propagating.
++   if (!isLoading) void openSignIn();
     return false;
   };
 ```
 
-`useConvexAuth().isAuthenticated` only becomes `true` after the Convex client has received and validated the JWT. This eliminates the race window.
+`useConvexAuth().isAuthenticated` only becomes `true` after the Convex client has received and validated the JWT. The `isLoading` guard prevents a redundant sign-in prompt during the transient window where Clerk is signed in but the Convex token hasn't propagated yet.
 
 ---
 
@@ -94,14 +96,17 @@ export const list = query({
 
 The query has no filter on `parentChronicleId`. Replies (chronicles with a non-null `parentChronicleId`) appear in the main feed as standalone posts, which is wrong — they should only appear nested under their parent.
 
-**Fix:** Filter out replies in the query:
+**Fix applied:** Added a compound index `by_parent_and_created` on `[parentChronicleId, createdAt]` to the schema and updated the `list` query to filter server-side:
 
 ```ts
-const all = await ctx.db.query("chronicles").withIndex("by_created").order("desc").take(limit * 2);
-return all.filter(c => !c.parentChronicleId).slice(0, limit);
+return ctx.db
+  .query("chronicles")
+  .withIndex("by_parent_and_created", (q) => q.eq("parentChronicleId", undefined))
+  .order("desc")
+  .take(limit);
 ```
 
-Or add a compound index `by_parent_and_created` on `[parentChronicleId, createdAt]` and query where `parentChronicleId` is undefined.
+This reliably returns exactly `limit` top-level chronicles without the fragile `take(limit * 2) + filter + slice` heuristic.
 
 ---
 

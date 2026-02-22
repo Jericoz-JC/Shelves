@@ -99,7 +99,11 @@ export const list = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, { limit = LIST_DEFAULT_LIMIT }) => {
-    return ctx.db.query("chronicles").withIndex("by_created").order("desc").take(limit);
+    return ctx.db
+      .query("chronicles")
+      .withIndex("by_parent_and_created", (q) => q.eq("parentChronicleId", undefined))
+      .order("desc")
+      .take(limit);
   },
 });
 
