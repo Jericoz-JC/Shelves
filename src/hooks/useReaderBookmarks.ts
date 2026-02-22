@@ -47,24 +47,33 @@ export function useReaderBookmarks(bookHash: string | null) {
   const addBookmark = useCallback(
     async (input: CreateBookmarkInput): Promise<ReaderBookmark | null> => {
       if (!bookHash) return null;
-      const nextBookmark: ReaderBookmark = {
-        id: createBookmarkId(),
-        bookHash,
-        cfi: input.cfi,
-        chapter: input.chapter,
-        percentage: input.percentage,
-        createdAt: Date.now(),
-      };
-      await IndexedDBService.saveBookmark(nextBookmark);
-      setBookmarks((prev) => sortBookmarksByCreatedAt([...prev, nextBookmark]));
-      return nextBookmark;
+      try {
+        const nextBookmark: ReaderBookmark = {
+          id: createBookmarkId(),
+          bookHash,
+          cfi: input.cfi,
+          chapter: input.chapter,
+          percentage: input.percentage,
+          createdAt: Date.now(),
+        };
+        await IndexedDBService.saveBookmark(nextBookmark);
+        setBookmarks((prev) => sortBookmarksByCreatedAt([...prev, nextBookmark]));
+        return nextBookmark;
+      } catch (err) {
+        console.error("Failed to save reader bookmark:", err);
+        return null;
+      }
     },
     [bookHash]
   );
 
   const removeBookmark = useCallback(async (bookmarkId: string) => {
-    await IndexedDBService.deleteBookmark(bookmarkId);
-    setBookmarks((prev) => prev.filter((bookmark) => bookmark.id !== bookmarkId));
+    try {
+      await IndexedDBService.deleteBookmark(bookmarkId);
+      setBookmarks((prev) => prev.filter((bookmark) => bookmark.id !== bookmarkId));
+    } catch (err) {
+      console.error("Failed to delete reader bookmark:", err);
+    }
   }, []);
 
   return {

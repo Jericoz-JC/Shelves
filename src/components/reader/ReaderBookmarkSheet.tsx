@@ -83,17 +83,23 @@ export function ReaderBookmarkSheet({
             <div className="space-y-2">
               {bookmarks.map((bookmark, index) => {
                 const percentage = formatBookmarkPercentage(bookmark.percentage);
+                const bookmarkLabel = bookmark.chapter ?? `Bookmark ${bookmarks.length - index}`;
+                const ariaLabel = percentage
+                  ? `Go to bookmark: ${bookmarkLabel}, ${percentage} progress`
+                  : `Go to bookmark: ${bookmarkLabel}`;
                 return (
                   <article
                     key={bookmark.id}
                     className="flex items-center gap-2 rounded-2xl border border-[color:var(--reading-border)] bg-[color:var(--reading-surface)] px-3 py-2"
                   >
                     <button
+                      type="button"
+                      aria-label={ariaLabel}
                       onClick={() => onNavigate(bookmark.cfi)}
                       className="min-w-0 flex-1 rounded-lg px-2 py-1 text-left transition hover:bg-[color:var(--reading-surface-muted)]"
                     >
                       <p className="truncate text-sm font-medium text-[color:var(--reading-text)]">
-                        {bookmark.chapter ?? `Bookmark ${bookmarks.length - index}`}
+                        {bookmarkLabel}
                       </p>
                       <p className="text-xs text-[color:var(--reading-text)]/60">
                         {percentage ? `Progress ${percentage}` : "Saved location"}

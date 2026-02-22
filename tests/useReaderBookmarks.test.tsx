@@ -16,6 +16,26 @@ describe("useReaderBookmarks", () => {
     vi.clearAllMocks();
   });
 
+  it("returns empty bookmarks and blocks add when bookHash is null", async () => {
+    const { result } = renderHook(() => useReaderBookmarks(null));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(IndexedDBService.getBookmarks).not.toHaveBeenCalled();
+    expect(result.current.bookmarks).toEqual([]);
+
+    const added = await result.current.addBookmark({
+      cfi: "epubcfi(/6/2[target])",
+      chapter: "Chapter 1",
+      percentage: 0.1,
+    });
+
+    expect(added).toBeNull();
+    expect(IndexedDBService.saveBookmark).not.toHaveBeenCalled();
+  });
+
   it("loads and sorts bookmarks by most recent first", async () => {
     vi.mocked(IndexedDBService.getBookmarks).mockResolvedValueOnce([
       {

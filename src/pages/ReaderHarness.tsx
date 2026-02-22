@@ -99,7 +99,7 @@ export default function ReaderHarness() {
         });
       },
     }),
-    [goNext, goPrev, progress?.currentCFI, progress?.percentage, book, rendition, spineBoundaries, setFontSize, chapterProgress, currentChapter, chapterIndex, totalChapters]
+    [goNext, goPrev, progress?.currentCFI, progress?.percentage, book, rendition, spineBoundaries, chapterProgress, currentChapter, chapterIndex, totalChapters]
   );
 
   useEffect(() => {

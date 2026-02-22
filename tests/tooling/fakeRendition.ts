@@ -25,8 +25,9 @@ export class FakeRendition {
     }
   }
 
-  display(cfi: string) {
+  display(cfi: string): Promise<void> {
     this.displayedCfi = cfi;
+    return Promise.resolve();
   }
 
   emitRelocated(payload: RelocatedPayload) {

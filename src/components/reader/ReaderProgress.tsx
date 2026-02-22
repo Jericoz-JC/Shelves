@@ -23,9 +23,11 @@ export function ReaderProgress({
   const percentValue = safePercentage * 100;
   // Show extra precision at the low end so front-matter progress is visible
   const displayPercent =
-    percentValue < 1
-      ? percentValue.toFixed(1)   // e.g. "0.4"
-      : String(Math.round(percentValue));  // e.g. "3"
+    percentValue === 0
+      ? "0"
+      : percentValue < 1
+        ? percentValue.toFixed(1) // e.g. "0.4"
+        : String(Math.round(percentValue)); // e.g. "3"
   const barValue = Math.max(percentValue, percentValue > 0 ? 0.5 : 0); // min visible bar width
   const displayChapter =
     typeof chapterIndex === "number" && totalChapters

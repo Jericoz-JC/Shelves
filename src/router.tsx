@@ -2,7 +2,15 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import Library from "@/pages/Library";
 import Reader from "@/pages/Reader";
 import Feed from "@/pages/Feed";
-import ReaderHarness from "@/pages/ReaderHarness";
+
+const devRoutes = import.meta.env.DEV
+  ? [
+      {
+        path: "/reader-harness",
+        lazy: async () => ({ Component: (await import("@/pages/ReaderHarness")).default }),
+      },
+    ]
+  : [];
 
 export const router = createBrowserRouter([
   {
@@ -17,10 +25,7 @@ export const router = createBrowserRouter([
     path: "/read/:bookId",
     element: <Reader />,
   },
-  {
-    path: "/reader-harness",
-    element: <ReaderHarness />,
-  },
+  ...devRoutes,
   {
     path: "/feed",
     children: [

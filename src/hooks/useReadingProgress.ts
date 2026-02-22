@@ -45,6 +45,8 @@ export function useReadingProgress({
           percentage: saved.percentage,
         };
       }
+    }).catch((err) => {
+      console.error("Failed to restore reader progress:", err);
     });
   }, [bookHash]);
 

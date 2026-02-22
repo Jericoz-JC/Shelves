@@ -57,7 +57,7 @@ describe("useChapterProgress", () => {
     expect(result.current.chapterProgress).toBeCloseTo(1, 5);
   });
 
-  it("normalizes chapter progress across chapter boundary percentages", () => {
+  it("falls back to displayed page ratio when chapter boundaries are unavailable", () => {
     const rendition = new FakeRendition();
     const book = createBook({ "cfi-0": 0.2, "cfi-1": 0.8, "cfi-2": 1 });
     const chapters = [
