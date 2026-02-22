@@ -96,6 +96,28 @@ export function ChronicleCard({
             )}
           </div>
           <p className="text-[15px] leading-relaxed mt-1">{chronicle.text}</p>
+          {chronicle.highlightText && (
+            <div className="mt-2 rounded-lg border border-border/60 bg-secondary/30 overflow-hidden">
+              <div className="flex">
+                <div className="w-1 shrink-0 bg-accent/60 rounded-l-lg" />
+                <div className="px-3 py-2.5 flex-1 min-w-0">
+                  <p className="text-[13px] leading-relaxed text-foreground/80 italic line-clamp-5">
+                    &ldquo;{chronicle.highlightText}&rdquo;
+                  </p>
+                  {chronicle.bookTitle && (
+                    <p className="mt-1.5 text-[11px] font-medium text-muted-foreground truncate">
+                      &mdash; {chronicle.bookTitle}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {chronicle.spoilerTag && (
+                <span className="mx-3 mb-2 inline-block text-[10px] font-semibold uppercase tracking-wider text-amber-500/80 bg-amber-500/10 rounded px-1.5 py-0.5">
+                  Spoiler
+                </span>
+              )}
+            </div>
+          )}
           <ChronicleActions
             replyCount={chronicle.replyCount}
             repostCount={chronicle.repostCount}

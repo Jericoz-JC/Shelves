@@ -1,14 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import type {
-  Chronicle,
-  FeedTab,
-  FeedView,
-  Reply,
-  UserProfile,
-} from "@/types/social";
-import { mockChronicles, getUserById } from "@/data/mockFeed";
-import { mockReplies, mockUserBooks } from "@/data/mockReplies";
+import type { FeedTab, FeedView, UserProfile } from "@/types/social";
+import { getUserById } from "@/data/mockFeed";
+import { mockUserBooks } from "@/data/mockReplies";
+import { useChronicles } from "@/hooks/useChronicles";
 import {
   readingClubs,
   suggestedReaders,
@@ -38,13 +33,6 @@ import {
 const CURRENT_USER_ID = "me";
 const DISCOVERY_LOADING_DELAY_MS = 320;
 
-function createLocalId(prefix: string): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-    return `${prefix}-${crypto.randomUUID()}`;
-  }
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
 function getFeedView(pathname: string): FeedView {
   if (pathname === "/feed/following") return "following";
   if (pathname === "/feed/bookmarks") return "bookmarks";
@@ -62,7 +50,16 @@ export default function Feed() {
   const feedView = getFeedView(location.pathname);
   const activeTab: FeedTab = feedView === "following" ? "following" : "forYou";
 
-  const [posts, setPosts] = useState<Chronicle[]>(mockChronicles);
+  const {
+    chronicles: posts,
+    replies,
+    addChronicle,
+    likeChronicle,
+    repostChronicle,
+    bookmarkChronicle,
+    deleteChronicle,
+    addReply,
+  } = useChronicles();
 
   // TODO: Extract feed/follow/profile concerns into dedicated hooks as backend wiring lands.
   // Profile sidebar state
@@ -76,16 +73,6 @@ export default function Feed() {
     displayName: "You",
     handle: "you",
     bio: "Avid reader and book lover.",
-  });
-
-  // Replies state initialized from mock data
-  const [replies, setReplies] = useState<Record<string, Reply[]>>(() => {
-    const map: Record<string, Reply[]> = {};
-    for (const reply of mockReplies) {
-      if (!map[reply.chronicleId]) map[reply.chronicleId] = [];
-      map[reply.chronicleId].push(reply);
-    }
-    return map;
   });
 
   // Follows default: all mock users
@@ -117,81 +104,9 @@ export default function Feed() {
   }, []);
 
   const handlePost = (text: string) => {
-    const newChronicle: Chronicle = {
-      id: createLocalId("c"),
-      authorId: CURRENT_USER_ID,
-      text,
-      createdAt: Date.now(),
-      likeCount: 0,
-      replyCount: 0,
-      repostCount: 0,
-      isLiked: false,
-      isReposted: false,
-      isBookmarked: false,
-    };
-
-    setPosts((prev) => [newChronicle, ...prev]);
+    addChronicle({ text });
     setComposeOpen(false);
     navigate("/feed");
-  };
-
-  const handleLike = (id: string) => {
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              isLiked: !p.isLiked,
-              likeCount: p.isLiked ? p.likeCount - 1 : p.likeCount + 1,
-            }
-          : p
-      )
-    );
-  };
-
-  const handleRepost = (id: string) => {
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? {
-              ...p,
-              isReposted: !p.isReposted,
-              repostCount: p.isReposted
-                ? p.repostCount - 1
-                : p.repostCount + 1,
-            }
-          : p
-      )
-    );
-  };
-
-  const handleReply = (chronicleId: string, text: string) => {
-    const newReply: Reply = {
-      id: createLocalId("r"),
-      chronicleId,
-      authorId: CURRENT_USER_ID,
-      text,
-      createdAt: Date.now(),
-    };
-
-    setReplies((prev) => ({
-      ...prev,
-      [chronicleId]: [newReply, ...(prev[chronicleId] || [])],
-    }));
-
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === chronicleId ? { ...p, replyCount: p.replyCount + 1 } : p
-      )
-    );
-  };
-
-  const handleBookmark = (id: string) => {
-    setPosts((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, isBookmarked: !p.isBookmarked } : p
-      )
-    );
   };
 
   const handleToggleFollow = (userId: string) => {
@@ -199,15 +114,6 @@ export default function Feed() {
       const next = new Set(prev);
       if (next.has(userId)) next.delete(userId);
       else next.add(userId);
-      return next;
-    });
-  };
-
-  const handleDelete = (id: string) => {
-    setPosts((prev) => prev.filter((p) => p.id !== id));
-    setReplies((prev) => {
-      const next = { ...prev };
-      delete next[id];
       return next;
     });
   };
@@ -431,12 +337,12 @@ export default function Feed() {
           replies={replies}
           currentUserId={CURRENT_USER_ID}
           emptyMessage={emptyMessage}
-          onLike={handleLike}
-          onRepost={handleRepost}
-          onReply={handleReply}
+          onLike={likeChronicle}
+          onRepost={repostChronicle}
+          onReply={addReply}
           onAvatarClick={handleAvatarClick}
-          onBookmark={handleBookmark}
-          onDelete={handleDelete}
+          onBookmark={bookmarkChronicle}
+          onDelete={deleteChronicle}
         />
       </SocialLayout>
 
