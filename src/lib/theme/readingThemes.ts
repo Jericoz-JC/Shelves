@@ -6,6 +6,7 @@ export interface ThemeConfig {
   text: string;
   accent: string;
   label: string;
+  selectionBg: string;
 }
 
 export const READING_THEMES: Record<ReadingTheme, ThemeConfig> = {
@@ -15,6 +16,7 @@ export const READING_THEMES: Record<ReadingTheme, ThemeConfig> = {
     text: "#2A241C",
     accent: "#C07A3D",
     label: "Paper",
+    selectionBg: "rgba(192, 122, 61, 0.25)",
   },
   night: {
     name: "night",
@@ -22,6 +24,7 @@ export const READING_THEMES: Record<ReadingTheme, ThemeConfig> = {
     text: "#EAE3DA",
     accent: "#C99B63",
     label: "Night",
+    selectionBg: "rgba(201, 155, 99, 0.30)",
   },
   focus: {
     name: "focus",
@@ -29,6 +32,7 @@ export const READING_THEMES: Record<ReadingTheme, ThemeConfig> = {
     text: "#3A332B",
     accent: "#5C8062",
     label: "Focus",
+    selectionBg: "rgba(92, 128, 98, 0.25)",
   },
   sepia: {
     name: "sepia",
@@ -36,6 +40,7 @@ export const READING_THEMES: Record<ReadingTheme, ThemeConfig> = {
     text: "#5A4330",
     accent: "#8B6A2B",
     label: "Sepia",
+    selectionBg: "rgba(139, 106, 43, 0.25)",
   },
 };
 
@@ -54,6 +59,15 @@ export function getThemeCSS(
       "font-size": `${fontSize}px`,
       "line-height": "1.7",
       padding: "0 1rem",
+      "-webkit-tap-highlight-color": "transparent",
+    },
+    "body, body *": {
+      "user-select": "text !important",
+      "-webkit-user-select": "text !important",
+      "-moz-user-select": "text !important",
+    },
+    "::selection": {
+      "background-color": config.selectionBg,
     },
     "a, a:link, a:visited": {
       color: config.accent,
@@ -69,6 +83,7 @@ export function getThemeCSS(
     },
   };
 }
+
 
 export const FONT_FAMILIES = [
   { label: "Georgia", value: "Georgia, serif" },
