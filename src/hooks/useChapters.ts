@@ -77,9 +77,12 @@ export function buildChapterItems(
 ): ChapterItem[] {
   const labelsBySpineIndex = new Map<number, string>();
   const flattened = flattenToc(tocItems);
+  // Pre-compute unique spine index count: spineItems may contain duplicates, so comparing
+  // labelsBySpineIndex.size against spineItems.length would never trigger the early exit.
+  const uniqueSpineCount = new Set(spineItems.map((s) => s.index)).size;
 
   flattened.forEach((tocItem) => {
-    if (!tocItem.href || labelsBySpineIndex.size === spineItems.length) return;
+    if (!tocItem.href || labelsBySpineIndex.size === uniqueSpineCount) return;
     const section = resolveSection(tocItem.href, resolver);
     const label = tocItem.label?.trim();
     if (!section || !label || labelsBySpineIndex.has(section.index)) return;

@@ -44,7 +44,7 @@ type MRef<Args extends Record<string, unknown>> = FunctionReference<
 export const api = anyApi as unknown as {
   chronicles: {
     list: QRef<{ limit?: number }, ChronicleDoc[]>;
-    listReplies: QRef<{ parentId: string }, ChronicleDoc[]>;
+    listReplies: QRef<{ parentId: string; limit?: number }, ChronicleDoc[]>;
     create: MRef<{
       userId: string;
       text: string;

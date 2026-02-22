@@ -1,11 +1,15 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 
+const LIST_DEFAULT_LIMIT = 20;
+const REPLIES_DEFAULT_LIMIT = 50;
+const REPLIES_MAX_LIMIT = 100;
+
 export const list = query({
   args: {
     limit: v.optional(v.number()),
   },
-  handler: async (ctx, { limit = 20 }) => {
+  handler: async (ctx, { limit = LIST_DEFAULT_LIMIT }) => {
     return ctx.db
       .query("chronicles")
       .withIndex("by_created")
@@ -15,19 +19,23 @@ export const list = query({
 });
 
 export const listReplies = query({
-  args: { parentId: v.id("chronicles") },
-  handler: async (ctx, { parentId }) =>
+  args: {
+    parentId: v.id("chronicles"),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { parentId, limit = REPLIES_DEFAULT_LIMIT }) =>
     ctx.db
       .query("chronicles")
       .withIndex("by_parent_chronicle", (q) =>
         q.eq("parentChronicleId", parentId)
       )
       .order("asc")
-      .collect(),
+      .take(Math.min(limit, REPLIES_MAX_LIMIT)),
 });
 
 export const create = mutation({
   args: {
+    // TODO: replace client-supplied userId with authenticated session identity (Clerk) before production
     userId: v.string(),
     text: v.string(),
     highlightText: v.optional(v.string()),
@@ -54,6 +62,7 @@ export const create = mutation({
 export const like = mutation({
   args: {
     chronicleId: v.id("chronicles"),
+    // TODO: replace client-supplied userId with authenticated session identity (Clerk) before production
     userId: v.string(),
   },
   handler: async (ctx, { chronicleId, userId }) => {
@@ -82,6 +91,7 @@ export const like = mutation({
 export const repost = mutation({
   args: {
     chronicleId: v.id("chronicles"),
+    // TODO: replace client-supplied userId with authenticated session identity (Clerk) before production
     userId: v.string(),
   },
   handler: async (ctx, { chronicleId, userId }) => {
@@ -110,6 +120,7 @@ export const repost = mutation({
 export const bookmark = mutation({
   args: {
     chronicleId: v.id("chronicles"),
+    // TODO: replace client-supplied userId with authenticated session identity (Clerk) before production
     userId: v.string(),
   },
   handler: async (ctx, { chronicleId, userId }) => {
@@ -131,12 +142,29 @@ export const bookmark = mutation({
 export const remove = mutation({
   args: {
     chronicleId: v.id("chronicles"),
+    // TODO: replace client-supplied userId with authenticated session identity (Clerk) before production
     userId: v.string(),
   },
   handler: async (ctx, { chronicleId, userId }) => {
     const chronicle = await ctx.db.get(chronicleId);
     if (!chronicle) return;
     if (chronicle.authorId !== userId) return;
+
+    // Cascade-delete orphaned likes, reposts, bookmarks, and direct child replies
+    const [likes, reposts, bookmarks, childReplies] = await Promise.all([
+      ctx.db.query("likes").withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId)).collect(),
+      ctx.db.query("reposts").withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId)).collect(),
+      ctx.db.query("bookmarks").withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId)).collect(),
+      ctx.db.query("chronicles").withIndex("by_parent_chronicle", (q) => q.eq("parentChronicleId", chronicleId)).collect(),
+    ]);
+
+    await Promise.all([
+      ...likes.map((r) => ctx.db.delete(r._id)),
+      ...reposts.map((r) => ctx.db.delete(r._id)),
+      ...bookmarks.map((r) => ctx.db.delete(r._id)),
+      ...childReplies.map((r) => ctx.db.delete(r._id)),
+    ]);
+
     await ctx.db.delete(chronicleId);
   },
 });
@@ -145,9 +173,14 @@ export const addReply = mutation({
   args: {
     parentChronicleId: v.id("chronicles"),
     text: v.string(),
+    // TODO: replace client-supplied userId with authenticated session identity (Clerk) before production
     userId: v.string(),
   },
   handler: async (ctx, { parentChronicleId, text, userId }) => {
+    // Validate parent exists before inserting to avoid orphaned replies
+    const parent = await ctx.db.get(parentChronicleId);
+    if (!parent) throw new Error("Parent chronicle not found");
+
     const replyId = await ctx.db.insert("chronicles", {
       authorId: userId,
       text,
@@ -158,12 +191,9 @@ export const addReply = mutation({
       createdAt: Date.now(),
     });
 
-    const parent = await ctx.db.get(parentChronicleId);
-    if (parent) {
-      await ctx.db.patch(parentChronicleId, {
-        replyCount: parent.replyCount + 1,
-      });
-    }
+    await ctx.db.patch(parentChronicleId, {
+      replyCount: parent.replyCount + 1,
+    });
 
     return replyId;
   },

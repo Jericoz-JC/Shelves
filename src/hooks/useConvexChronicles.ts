@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { getTempUserId } from "@/lib/utils/tempUserId";
@@ -6,9 +6,14 @@ import type { Reply } from "@/types/social";
 import type { ChroniclesHook, NewChronicleDraft } from "./useChronicles";
 
 export function useConvexChronicles(): ChroniclesHook {
-  const userId = getTempUserId();
+  // Memoize for component lifetime — getTempUserId reads localStorage on every call
+  const userId = useMemo(() => getTempUserId(), []);
 
   const rawChronicles = useQuery(api.chronicles.list, { limit: 50 }) ?? [];
+
+  // localReplies holds optimistic replies added this session.
+  // TODO (Phase 4.5): subscribe to api.chronicles.listReplies per expanded chronicle
+  // and merge server replies with localReplies so threads persist across sessions.
   const [localReplies, setLocalReplies] = useState<Record<string, Reply[]>>({});
 
   const createMutation   = useMutation(api.chronicles.create);
@@ -71,6 +76,8 @@ export function useConvexChronicles(): ChroniclesHook {
     addReply: (chronicleId: string, text: string): Reply => {
       void replyMutation({ parentChronicleId: chronicleId, text, userId });
 
+      // The returned id is optimistic — it won't match the Convex document id.
+      // Downstream components should rely on the server-refreshed list for persistence.
       const newReply: Reply = {
         id: crypto.randomUUID(),
         chronicleId,
