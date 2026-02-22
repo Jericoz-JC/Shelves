@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { clamp } from "@/lib/utils/math";
 
 interface UseMobileBottomChromeMotionOptions {
   peekPx?: number;
@@ -41,10 +42,6 @@ const DESKTOP_MOTION_PROFILE: MotionProfile = {
   velocityRefPxPerMs: 2.6,
   maxLagPx: 16,
 };
-
-export function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
-}
 
 export function computeTrackedOffset(
   currentOffsetPx: number,

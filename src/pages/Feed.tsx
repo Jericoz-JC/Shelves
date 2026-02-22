@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import type { FeedTab, FeedView, UserProfile } from "@/types/social";
 import { getUserById } from "@/data/mockFeed";
 import { mockUserBooks } from "@/data/mockReplies";
-import { useChronicles } from "@/hooks/useChronicles";
+import { useConvexChronicles as useChronicles } from "@/hooks/useConvexChronicles";
 import {
   readingClubs,
   suggestedReaders,

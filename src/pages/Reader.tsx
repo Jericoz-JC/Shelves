@@ -19,7 +19,7 @@ import { ReaderScrubSheet } from "@/components/reader/ReaderScrubSheet";
 import { HighlightTooltip } from "@/components/reader/HighlightTooltip";
 import { ShareHighlightSheet } from "@/components/reader/ShareHighlightSheet";
 import { IndexedDBService } from "@/lib/db/indexedDB";
-import { useChronicles } from "@/hooks/useChronicles";
+import { useConvexChronicles as useChronicles } from "@/hooks/useConvexChronicles";
 import {
   type ReadingTheme,
   FONT_SIZE_DEFAULT,

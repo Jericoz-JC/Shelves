@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Book, Rendition } from "epubjs";
 import type { ChapterItem } from "@/hooks/useChapters";
+import { clamp } from "@/lib/utils/math";
 import {
   computeChapterPercentageFromBoundaries,
   computePreciseBookPercentage,
@@ -17,6 +18,46 @@ interface DisplayedLocation {
     percentage: number;
     displayed: { page: number; total: number };
   };
+}
+
+export function resolveChapterIndexFromSpine(
+  spineIndex: number,
+  chapters: ChapterItem[]
+) {
+  const exactMatch = chapters.findIndex((chapter) => chapter.spineIndex === spineIndex);
+  if (exactMatch >= 0) return exactMatch;
+
+  let nearestPrevious = -1;
+  for (let i = 0; i < chapters.length; i += 1) {
+    if (chapters[i].spineIndex <= spineIndex) {
+      nearestPrevious = i;
+    } else {
+      break;
+    }
+  }
+  return nearestPrevious;
+}
+
+export function isLocationsMapReady(book: Book | null) {
+  const locations = book?.locations;
+  if (!locations || typeof locations.length !== "function") return false;
+  try {
+    return locations.length() > 0;
+  } catch {
+    return false;
+  }
+}
+
+export function computeChapterProgressValue(
+  currentPercent: number,
+  startPercent: number,
+  endPercent: number
+) {
+  if (!Number.isFinite(currentPercent)) return null;
+  if (!Number.isFinite(startPercent) || !Number.isFinite(endPercent)) return null;
+  if (endPercent <= startPercent) return null;
+  const raw = (currentPercent - startPercent) / (endPercent - startPercent);
+  return clamp(raw, 0, 1);
 }
 
 export function useChapterProgress(
@@ -49,14 +90,7 @@ export function useChapterProgress(
       }
 
       const spineIndex = loc.start.index;
-      let locChapterIndex = -1;
-      for (let i = 0; i < chapters.length; i += 1) {
-        if (chapters[i].spineIndex <= spineIndex) {
-          locChapterIndex = i;
-        } else {
-          break;
-        }
-      }
+      const locChapterIndex = resolveChapterIndexFromSpine(spineIndex, chapters);
 
       if (locChapterIndex < 0) {
         setChapterProgress(null);
@@ -114,16 +148,7 @@ export function useChapterProgress(
 
   const chapterIndex = useMemo(() => {
     if (!location || chapters.length === 0) return -1;
-    const spineIndex = location.start.index;
-    let idx = -1;
-    for (let i = 0; i < chapters.length; i += 1) {
-      if (chapters[i].spineIndex <= spineIndex) {
-        idx = i;
-      } else {
-        break;
-      }
-    }
-    return idx;
+    return resolveChapterIndexFromSpine(location.start.index, chapters);
   }, [location, chapters]);
 
   const currentChapter = chapterIndex >= 0 ? chapters[chapterIndex] : null;

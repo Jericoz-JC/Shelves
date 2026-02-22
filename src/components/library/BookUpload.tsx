@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
 import { Plus, Upload } from "lucide-react";
+import { useMutation } from "convex/react";
+import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { loadEpubFromFile } from "@/lib/epub/epubLoader";
 import { extractMetadata, toBookMetadata } from "@/lib/epub/epubParser";
@@ -13,6 +15,7 @@ interface BookUploadProps {
 export function BookUpload({ onUploadComplete }: BookUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const createBook = useMutation(api.books.createBook);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -29,6 +32,18 @@ export function BookUpload({ onUploadComplete }: BookUploadProps) {
       const metadata = toBookMetadata(epubMeta, fileHash, file.size);
 
       await IndexedDBService.storeBook(fileHash, arrayBuffer, metadata);
+
+      // Fire-and-forget: push metadata to Convex (non-blocking)
+      createBook({
+        fileHash: metadata.fileHash,
+        title: metadata.title,
+        author: metadata.author,
+        coverImageUrl: metadata.coverUrl ?? undefined,
+        fileSizeBytes: metadata.fileSizeBytes,
+      }).catch((err) => {
+        console.warn("[BookUpload] Convex sync failed:", err);
+      });
+
       onUploadComplete();
     } catch (err) {
       console.error("Failed to upload book:", err);
