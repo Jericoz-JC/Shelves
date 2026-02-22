@@ -14,12 +14,16 @@ import { ReaderChapterSheet } from "@/components/reader/ReaderChapterSheet";
 import { ReaderNavigation } from "@/components/reader/ReaderNavigation";
 import { ReaderProgress } from "@/components/reader/ReaderProgress";
 import { ReaderScrubSheet } from "@/components/reader/ReaderScrubSheet";
+import { HighlightTooltip } from "@/components/reader/HighlightTooltip";
+import { ShareHighlightSheet } from "@/components/reader/ShareHighlightSheet";
 import { IndexedDBService } from "@/lib/db/indexedDB";
+import { useChronicles } from "@/hooks/useChronicles";
 import {
   type ReadingTheme,
   FONT_SIZE_DEFAULT,
   FONT_FAMILIES,
 } from "@/lib/theme/readingThemes";
+import { useHighlights } from "@/hooks/useHighlights";
 
 export default function Reader() {
   const { bookId } = useParams<{ bookId: string }>();
@@ -54,6 +58,22 @@ export default function Reader() {
   const chapters = useChapters(book);
   const chapterProgress = useChapterProgress(book, rendition, chapters);
 
+  const {
+    toolbarState,
+    deleteTarget,
+    hasActiveSelection,
+    shareOpen,
+    saveHighlight,
+    deleteHighlight,
+    dismissToolbar,
+    openShare,
+    closeShare,
+  } = useHighlights(rendition, bookId ?? null, viewerRef, theme);
+
+  const { addChronicle } = useChronicles();
+
+  const [bookTitle, setBookTitle] = useState<string | null>(null);
+
   // Load book from IndexedDB
   useEffect(() => {
     if (!bookId) return;
@@ -65,14 +85,33 @@ export default function Reader() {
         setLoadError("Book not found in local storage.");
       }
     });
+
+    IndexedDBService.getAllMetadata().then((metaList) => {
+      const meta = metaList.find((m) => m.fileHash === bookId);
+      if (meta) setBookTitle(meta.title);
+    });
   }, [bookId]);
 
 
-  // Toggle controls on center tap
+  // Toggle controls on center tap — dismiss highlight toolbar first if active
   const handleCenterTap = useCallback(() => {
+    if (hasActiveSelection) { dismissToolbar(); return; }
     setShowControls((prev) => !prev);
-  }, []);
+  }, [hasActiveSelection, dismissToolbar]);
 
+
+  // Dismiss highlight toolbar on outside taps — skip while share sheet is open,
+  // and skip taps that land inside the tooltip itself (capture fires before
+  // the tooltip's onTouchStart stopPropagation, so we check the target here).
+  useEffect(() => {
+    if (shareOpen) return;
+    const handler = (e: TouchEvent) => {
+      if ((e.target as Element | null)?.closest("[data-highlight-tooltip]")) return;
+      dismissToolbar();
+    };
+    document.addEventListener("touchstart", handler, { capture: true, passive: true });
+    return () => document.removeEventListener("touchstart", handler, { capture: true });
+  }, [dismissToolbar, shareOpen]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -237,6 +276,31 @@ export default function Reader() {
           />
         </footer>
       )}
+
+      {/* Highlight color picker / delete toolbar */}
+      {(toolbarState.pendingCfi !== null || deleteTarget !== null) && !shareOpen && (
+        <HighlightTooltip
+          toolbarState={toolbarState}
+          deleteTarget={deleteTarget}
+          onSelectColor={(color) => void saveHighlight(color)}
+          onDelete={() => void deleteHighlight()}
+          onDismiss={dismissToolbar}
+          onShare={openShare}
+        />
+      )}
+
+      {/* Share highlight to Chronicles */}
+      <ShareHighlightSheet
+        open={shareOpen}
+        highlightText={toolbarState.pendingText}
+        bookTitle={bookTitle}
+        bookHash={bookId ?? null}
+        onPost={(draft) => {
+          addChronicle(draft);
+          closeShare();
+        }}
+        onDismiss={closeShare}
+      />
     </div>
   );
 }

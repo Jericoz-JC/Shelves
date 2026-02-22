@@ -47,6 +47,8 @@ export default defineSchema({
     authorId: v.string(),
     text: v.string(),
     bookRef: v.optional(v.string()),
+    highlightText: v.optional(v.string()),
+    bookTitle: v.optional(v.string()),
     parentChronicleId: v.optional(v.id("chronicles")),
     spoilerTag: v.optional(v.boolean()),
     likeCount: v.number(),

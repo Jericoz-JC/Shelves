@@ -17,6 +17,10 @@ export interface Chronicle {
   isLiked: boolean;
   isReposted: boolean;
   isBookmarked: boolean;
+  highlightText?: string;
+  bookTitle?: string;
+  bookHash?: string;
+  spoilerTag?: boolean;
 }
 
 export type FeedTab = "forYou" | "following";
