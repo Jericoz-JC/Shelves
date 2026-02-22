@@ -36,7 +36,7 @@ export interface ReaderNote {
   createdAt: number;
   updatedAt: number;
   percentage?: number | null;
-  color?: string;           // 'yellow' | 'blue' | 'green' | 'pink'
+  color?: "yellow" | "blue" | "green" | "pink";
   highlightedText?: string; // the raw selected text
 }
 

@@ -69,9 +69,15 @@ export function useHighlights(
       const highlights = notes.filter((n) => !!n.color);
       highlightsRef.current = highlights;
 
+      // Remove before re-adding — prevents duplicate DOM nodes when this
+      // effect re-runs on a theme change (annotations.add is not idempotent
+      // at the DOM level even though the internal map entry is overwritten)
+      for (const h of highlights) {
+        try { rendition!.annotations.remove(h.cfi, "highlight"); } catch {}
+      }
       for (const h of highlights) {
         const cls = `hl-${h.color}`;
-        const styles = getAnnotationStyles(h.color as HighlightColor, themeRef.current);
+        const styles = getAnnotationStyles(h.color!, themeRef.current);
         try {
           rendition!.annotations.add(
             "highlight",
