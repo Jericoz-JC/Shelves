@@ -1,58 +1,84 @@
 # Shelves
 
-A local-first ePub reader built with React, Vite, and epub.js. Books and reading progress are stored in IndexedDB. Convex schema and functions are scaffolded but not deployed. Planned domain: shelves.cloud.
+Shelves is a local-first ePub reader with social posting ("Chronicles"), built on React + Vite with Clerk authentication and Convex backend functions.
 
-## What Was Built
-- Vite + React + TypeScript with @/ path aliases
-- Tailwind CSS v4 + shadcn/ui components
-- Motion installed for animations
-- Convex schema and functions for users, books, reading progress, and preferences
-- IndexedDB storage for books, metadata, and progress
-- ePub loading, parsing, and rendering with theme injection
-- Reading themes (Paper, Night, Focus, Sepia) and font controls
-- Library and Reader pages with upload, navigation, and progress UI
-- Verification: TypeScript check, Vite build, and dev server run
+## Tech Stack
+- React 19 + TypeScript + Vite 7
+- React Router 7
+- Tailwind CSS v4 + shadcn/ui + Radix UI
+- Convex (database, queries, mutations, scheduler)
+- Clerk (authentication)
+- IndexedDB (`idb`) for local ePub files and reader state
+- `epub.js` for parsing/rendering ePub content
+- Vitest + Testing Library for tests
 
-## How To Run
-1. npm install
-2. npm run dev
-3. Open http://localhost:5173
+## Current Product Areas
+- Library
+  - Upload ePub books
+  - Local storage of ePub binaries and metadata in IndexedDB
+  - Header auth controls (`Log-In` for signed-out users, Clerk user menu for signed-in users)
+- Reader
+  - ePub rendering, chapter navigation, highlights, bookmarks
+  - Reading progress tracking (local persistence + Convex sync when authenticated)
+  - Reading themes and typography controls
+- Chronicles Feed
+  - Create chronicle posts and replies
+  - Like, repost, bookmark, delete
+  - Signed-out write actions are auth-gated via Clerk sign-in modal
+  - Backend cleanup uses batched/scheduled cascade deletion to avoid oversized Convex transactions
 
-Optional:
-- npm run build
-- npm run preview
-- npm run test
-- npm run test:progress
+## Architecture Notes
+- Local-first remains primary for reading:
+  - Books and immediate reader progress are persisted locally in IndexedDB
+- Convex is actively wired for social + cloud sync:
+  - `convex/chronicles.ts`
+  - `convex/readingProgress.ts`
+  - `convex/userPreferences.ts`
+  - `convex/books.ts`
+- Auth is Clerk -> Convex JWT (`convex/auth.config.ts`)
+
+## Environment Variables
+
+### Frontend (`.env.local` for local dev, Vercel env vars for deploy)
+- `VITE_CONVEX_URL`
+- `VITE_CLERK_PUBLISHABLE_KEY`
+
+### Convex deployment env
+- `CLERK_JWT_ISSUER_DOMAIN`
+
+## Local Development
+1. Install dependencies:
+   - `npm install`
+2. Start frontend:
+   - `npm run dev`
+3. Start Convex dev backend in another terminal:
+   - `npx convex dev`
+4. Open:
+   - `http://localhost:5173`
+
+## Scripts
+- `npm run dev` - start Vite dev server
+- `npm run dev:harness` - start dev server opening `/reader-harness`
+- `npm run build` - type-check and build production bundle
+- `npm run preview` - preview production build
+- `npm run test` - run all tests
+- `npm run test:progress` - run reader-progress focused tests
 
 ## Reader Progress Harness
-- Start harness: `npm run dev:harness`
-- Open `http://localhost:5173/reader-harness`
-- Upload an `.epub`, then use `Prev` / `Next` to paginate
-- Live progress appears in `Progress:` and `CFI:` fields
+- Start with: `npm run dev:harness`
+- Open: `http://localhost:5173/reader-harness`
+- Console helpers:
+  - `window.__readerHarness.next()`
+  - `window.__readerHarness.prev()`
+  - `window.__readerHarness.getProgress()`
+  - `window.__readerHarness.getCfi()`
 
-Automation entrypoint in browser console:
-- `window.__readerHarness.next()`
-- `window.__readerHarness.prev()`
-- `window.__readerHarness.getProgress()`
-- `window.__readerHarness.getCfi()`
-
-## Data Storage
-- Local IndexedDB only (books, metadata, progress)
-- Convex backend is scaffolded but not wired up to the UI yet
+## Deployment Notes
+- Vercel frontend must have:
+  - `VITE_CONVEX_URL`
+  - `VITE_CLERK_PUBLISHABLE_KEY`
+- Convex deployment must have:
+  - `CLERK_JWT_ISSUER_DOMAIN`
 
 ## License
 MIT
-
-## Next Steps (Plan)
-1. Create the initial commit and push to GitHub
-2. Validate runtime behavior (upload, render, progress resume, themes)
-3. Decide on auth + sync (Clerk + Convex) and wire up backend
-4. Add tests for IndexedDB service and reading progress behavior
-5. Polish UX (error states, duplicate handling, link taps in reader)
-
-## Questions For README
-- Is the license holder name correct in LICENSE?
-- What browsers are officially supported?
-- Should we include screenshots or a short demo GIF?
-- Do you want a privacy note about local-only storage?
-- Should we add deployment details for shelves.cloud?  

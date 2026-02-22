@@ -1,41 +1,97 @@
 import { v } from "convex/values";
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
 import type { Id } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 import { requireAuthenticatedUserId } from "./lib/auth";
 
 const LIST_DEFAULT_LIMIT = 20;
 const REPLIES_DEFAULT_LIMIT = 50;
 const REPLIES_MAX_LIMIT = 100;
+const CASCADE_NODE_BATCH_SIZE = 20;
+const CASCADE_CHILD_PAGE_SIZE = 20;
+const CASCADE_REACTION_PAGE_SIZE = 50;
 
-async function deleteChronicleCascade(
-  ctx: MutationCtx,
+function pushUniqueChronicleId(
+  target: Id<"chronicles">[],
+  dedupe: Set<string>,
   chronicleId: Id<"chronicles">
-): Promise<void> {
-  const childReplies = await ctx.db
-    .query("chronicles")
-    .withIndex("by_parent_chronicle", (q) => q.eq("parentChronicleId", chronicleId))
-    .collect();
+) {
+  if (dedupe.has(chronicleId)) return;
+  dedupe.add(chronicleId);
+  target.push(chronicleId);
+}
 
-  for (const child of childReplies) {
-    await deleteChronicleCascade(ctx, child._id);
+async function processCascadeBatch(
+  ctx: MutationCtx,
+  queue: Id<"chronicles">[]
+): Promise<Id<"chronicles">[]> {
+  const pending = [...queue];
+  const nextQueue: Id<"chronicles">[] = [];
+  const dedupe = new Set<string>();
+  let processedNodes = 0;
+
+  while (pending.length > 0 && processedNodes < CASCADE_NODE_BATCH_SIZE) {
+    const chronicleId = pending.shift();
+    if (!chronicleId) break;
+    processedNodes += 1;
+
+    const chronicle = await ctx.db.get(chronicleId);
+    if (!chronicle) continue;
+
+    const [childReplies, likes, reposts, bookmarks] = await Promise.all([
+      ctx.db
+        .query("chronicles")
+        .withIndex("by_parent_chronicle", (q) => q.eq("parentChronicleId", chronicleId))
+        .take(CASCADE_CHILD_PAGE_SIZE),
+      ctx.db.query("likes").withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId)).take(CASCADE_REACTION_PAGE_SIZE),
+      ctx.db.query("reposts").withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId)).take(CASCADE_REACTION_PAGE_SIZE),
+      ctx.db
+        .query("bookmarks")
+        .withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId))
+        .take(CASCADE_REACTION_PAGE_SIZE),
+    ]);
+
+    await Promise.all([
+      ...likes.map((record) => ctx.db.delete(record._id)),
+      ...reposts.map((record) => ctx.db.delete(record._id)),
+      ...bookmarks.map((record) => ctx.db.delete(record._id)),
+    ]);
+
+    for (const child of childReplies) {
+      pushUniqueChronicleId(nextQueue, dedupe, child._id);
+    }
+
+    const hasChildren = childReplies.length > 0;
+    const mayHaveMoreReactions =
+      likes.length === CASCADE_REACTION_PAGE_SIZE ||
+      reposts.length === CASCADE_REACTION_PAGE_SIZE ||
+      bookmarks.length === CASCADE_REACTION_PAGE_SIZE;
+    const mayHaveMoreChildren = childReplies.length === CASCADE_CHILD_PAGE_SIZE;
+
+    if (hasChildren || mayHaveMoreChildren || mayHaveMoreReactions) {
+      // Requeue parent until all descendants and reactions are fully removed.
+      pushUniqueChronicleId(nextQueue, dedupe, chronicleId);
+      continue;
+    }
+
+    await ctx.db.delete(chronicleId);
   }
 
-  const [likes, reposts, bookmarks] = await Promise.all([
-    ctx.db.query("likes").withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId)).collect(),
-    ctx.db.query("reposts").withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId)).collect(),
-    ctx.db
-      .query("bookmarks")
-      .withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId))
-      .collect(),
-  ]);
+  for (const chronicleId of pending) {
+    pushUniqueChronicleId(nextQueue, dedupe, chronicleId);
+  }
 
-  await Promise.all([
-    ...likes.map((r) => ctx.db.delete(r._id)),
-    ...reposts.map((r) => ctx.db.delete(r._id)),
-    ...bookmarks.map((r) => ctx.db.delete(r._id)),
-  ]);
+  return nextQueue;
+}
 
-  await ctx.db.delete(chronicleId);
+async function scheduleCascadeIfNeeded(
+  ctx: MutationCtx,
+  remainingQueue: Id<"chronicles">[]
+): Promise<void> {
+  if (remainingQueue.length === 0) return;
+  await ctx.scheduler.runAfter(0, internal.chronicles.deleteCascadeBatch, {
+    queue: remainingQueue,
+  });
 }
 
 export const list = query({
@@ -185,7 +241,18 @@ export const remove = mutation({
       }
     }
 
-    await deleteChronicleCascade(ctx, chronicleId);
+    const remainingQueue = await processCascadeBatch(ctx, [chronicleId]);
+    await scheduleCascadeIfNeeded(ctx, remainingQueue);
+  },
+});
+
+export const deleteCascadeBatch = internalMutation({
+  args: {
+    queue: v.array(v.id("chronicles")),
+  },
+  handler: async (ctx, args) => {
+    const remainingQueue = await processCascadeBatch(ctx, args.queue);
+    await scheduleCascadeIfNeeded(ctx, remainingQueue);
   },
 });
 
