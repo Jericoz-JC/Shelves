@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 import Library from "@/pages/Library";
 import Reader from "@/pages/Reader";
 import Feed from "@/pages/Feed";
+import SpotifyCallback from "@/pages/SpotifyCallback";
 
 export const router = createBrowserRouter([
   {
@@ -15,6 +16,10 @@ export const router = createBrowserRouter([
   {
     path: "/read/:bookId",
     element: <Reader />,
+  },
+  {
+    path: "/callback/spotify",
+    element: <SpotifyCallback />,
   },
   {
     path: "/feed",

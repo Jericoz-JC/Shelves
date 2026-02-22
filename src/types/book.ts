@@ -25,6 +25,7 @@ export interface BookLocations {
 export interface BookSettings {
   bookHash: string;
   disableBottomScrubber: boolean;
+  spotifyMood: string | null;
   updatedAt: number;
 }
 
@@ -42,3 +43,5 @@ export interface StoredBook {
   fileHash: string;
   data: ArrayBuffer;
 }
+
+export type { ReadingMood } from "@/lib/spotify/moods";

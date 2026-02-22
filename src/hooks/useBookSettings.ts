@@ -4,6 +4,7 @@ import type { BookSettings } from "@/types/book";
 
 const DEFAULT_SETTINGS = {
   disableBottomScrubber: false,
+  spotifyMood: null as string | null,
 };
 
 export function useBookSettings(bookHash: string | null) {
@@ -37,7 +38,7 @@ export function useBookSettings(bookHash: string | null) {
         } else {
           setSettings({
             bookHash,
-            disableBottomScrubber: DEFAULT_SETTINGS.disableBottomScrubber,
+            ...DEFAULT_SETTINGS,
             updatedAt: Date.now(),
           });
         }
@@ -46,7 +47,7 @@ export function useBookSettings(bookHash: string | null) {
         if (cancelled) return;
         setSettings({
           bookHash,
-          disableBottomScrubber: DEFAULT_SETTINGS.disableBottomScrubber,
+          ...DEFAULT_SETTINGS,
           updatedAt: Date.now(),
         });
       })
@@ -66,7 +67,7 @@ export function useBookSettings(bookHash: string | null) {
       if (!bookHash) return;
       const base = settingsRef.current ?? {
         bookHash,
-        disableBottomScrubber: DEFAULT_SETTINGS.disableBottomScrubber,
+        ...DEFAULT_SETTINGS,
         updatedAt: Date.now(),
       };
       const merged: BookSettings = {

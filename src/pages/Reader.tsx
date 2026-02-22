@@ -14,6 +14,7 @@ import { ReaderChapterSheet } from "@/components/reader/ReaderChapterSheet";
 import { ReaderNavigation } from "@/components/reader/ReaderNavigation";
 import { ReaderProgress } from "@/components/reader/ReaderProgress";
 import { ReaderScrubSheet } from "@/components/reader/ReaderScrubSheet";
+import { SpotifyMoodPlayer } from "@/components/reader/SpotifyMoodPlayer";
 import { IndexedDBService } from "@/lib/db/indexedDB";
 import {
   type ReadingTheme,
@@ -237,6 +238,11 @@ export default function Reader() {
           />
         </footer>
       )}
+
+      <SpotifyMoodPlayer
+        settings={settings}
+        saveSettings={saveSettings}
+      />
     </div>
   );
 }

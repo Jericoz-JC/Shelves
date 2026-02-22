@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+/docs/
+
+# Environment variables
+.env
+.env.local
