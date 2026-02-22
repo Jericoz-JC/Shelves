@@ -28,7 +28,7 @@ export default function Library() {
               </SignInButton>
             </SignedOut>
             <SignedIn>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton />
             </SignedIn>
             <Button asChild variant="secondary" size="default">
               <Link to="/feed">

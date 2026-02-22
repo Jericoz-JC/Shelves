@@ -8,6 +8,7 @@ import App from "./App.tsx";
 
 const convexUrl = import.meta.env.VITE_CONVEX_URL;
 const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const convexClient = convexUrl ? new ConvexReactClient(convexUrl) : null;
 
 const missingEnvVars = [
   !convexUrl ? "VITE_CONVEX_URL" : null,
@@ -29,8 +30,8 @@ createRoot(document.getElementById("root")!).render(
         </section>
       </main>
     ) : (
-      <ClerkProvider publishableKey={clerkPublishableKey} afterSignOutUrl="/">
-        <ConvexProviderWithClerk client={new ConvexReactClient(convexUrl as string)} useAuth={useAuth}>
+      <ClerkProvider publishableKey={clerkPublishableKey as string} afterSignOutUrl="/">
+        <ConvexProviderWithClerk client={convexClient as ConvexReactClient} useAuth={useAuth}>
           <App />
         </ConvexProviderWithClerk>
       </ClerkProvider>

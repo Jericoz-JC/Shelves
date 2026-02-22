@@ -1,16 +1,41 @@
 import { v } from "convex/values";
-import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
+import type { Id } from "./_generated/dataModel";
+import { requireAuthenticatedUserId } from "./lib/auth";
 
 const LIST_DEFAULT_LIMIT = 20;
 const REPLIES_DEFAULT_LIMIT = 50;
 const REPLIES_MAX_LIMIT = 100;
 
-async function requireAuthenticatedUserId(ctx: QueryCtx | MutationCtx): Promise<string> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
-    throw new Error("Unauthorized");
+async function deleteChronicleCascade(
+  ctx: MutationCtx,
+  chronicleId: Id<"chronicles">
+): Promise<void> {
+  const childReplies = await ctx.db
+    .query("chronicles")
+    .withIndex("by_parent_chronicle", (q) => q.eq("parentChronicleId", chronicleId))
+    .collect();
+
+  for (const child of childReplies) {
+    await deleteChronicleCascade(ctx, child._id);
   }
-  return identity.subject;
+
+  const [likes, reposts, bookmarks] = await Promise.all([
+    ctx.db.query("likes").withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId)).collect(),
+    ctx.db.query("reposts").withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId)).collect(),
+    ctx.db
+      .query("bookmarks")
+      .withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId))
+      .collect(),
+  ]);
+
+  await Promise.all([
+    ...likes.map((r) => ctx.db.delete(r._id)),
+    ...reposts.map((r) => ctx.db.delete(r._id)),
+    ...bookmarks.map((r) => ctx.db.delete(r._id)),
+  ]);
+
+  await ctx.db.delete(chronicleId);
 }
 
 export const list = query({
@@ -151,31 +176,16 @@ export const remove = mutation({
     if (!chronicle) return;
     if (chronicle.authorId !== userId) return;
 
-    // Cascade-delete orphaned likes, reposts, bookmarks, and direct child replies.
-    const [likes, reposts, bookmarks, childReplies] = await Promise.all([
-      ctx.db.query("likes").withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId)).collect(),
-      ctx.db
-        .query("reposts")
-        .withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId))
-        .collect(),
-      ctx.db
-        .query("bookmarks")
-        .withIndex("by_chronicle", (q) => q.eq("chronicleId", chronicleId))
-        .collect(),
-      ctx.db
-        .query("chronicles")
-        .withIndex("by_parent_chronicle", (q) => q.eq("parentChronicleId", chronicleId))
-        .collect(),
-    ]);
+    if (chronicle.parentChronicleId) {
+      const parent = await ctx.db.get(chronicle.parentChronicleId);
+      if (parent) {
+        await ctx.db.patch(parent._id, {
+          replyCount: Math.max(0, parent.replyCount - 1),
+        });
+      }
+    }
 
-    await Promise.all([
-      ...likes.map((r) => ctx.db.delete(r._id)),
-      ...reposts.map((r) => ctx.db.delete(r._id)),
-      ...bookmarks.map((r) => ctx.db.delete(r._id)),
-      ...childReplies.map((r) => ctx.db.delete(r._id)),
-    ]);
-
-    await ctx.db.delete(chronicleId);
+    await deleteChronicleCascade(ctx, chronicleId);
   },
 });
 

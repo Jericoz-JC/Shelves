@@ -150,6 +150,7 @@ export function ChronicleCard({
             replies={replies}
             onReply={(text) => onReply(chronicle.id, text)}
             onAvatarClick={onAvatarClick}
+            currentUserId={currentUserId}
           />
         </div>
       </div>

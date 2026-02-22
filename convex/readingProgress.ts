@@ -1,13 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
-
-async function requireAuthenticatedUserId(ctx: QueryCtx | MutationCtx): Promise<string> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
-    throw new Error("Unauthorized");
-  }
-  return identity.subject;
-}
+import { mutation, query } from "./_generated/server";
+import { requireAuthenticatedUserId } from "./lib/auth";
 
 export const updateProgress = mutation({
   args: {
@@ -51,7 +44,10 @@ export const getProgress = query({
     bookHash: v.string(),
   },
   handler: async (ctx, args) => {
-    const userId = await requireAuthenticatedUserId(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+    const userId = identity.subject;
+
     return ctx.db
       .query("readingProgress")
       .withIndex("by_user_and_book", (q) => q.eq("userId", userId).eq("bookHash", args.bookHash))
@@ -62,7 +58,10 @@ export const getProgress = query({
 export const listUserProgress = query({
   args: {},
   handler: async (ctx) => {
-    const userId = await requireAuthenticatedUserId(ctx);
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+    const userId = identity.subject;
+
     return ctx.db
       .query("readingProgress")
       .withIndex("by_user", (q) => q.eq("userId", userId))

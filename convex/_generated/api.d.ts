@@ -10,6 +10,7 @@
 
 import type * as books from "../books.js";
 import type * as chronicles from "../chronicles.js";
+import type * as lib_auth from "../lib/auth.js";
 import type * as readingProgress from "../readingProgress.js";
 import type * as userPreferences from "../userPreferences.js";
 
@@ -22,6 +23,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   books: typeof books;
   chronicles: typeof chronicles;
+  "lib/auth": typeof lib_auth;
   readingProgress: typeof readingProgress;
   userPreferences: typeof userPreferences;
 }>;

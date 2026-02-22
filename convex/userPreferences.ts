@@ -1,13 +1,6 @@
 import { v } from "convex/values";
-import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
-
-async function requireAuthenticatedUserId(ctx: QueryCtx | MutationCtx): Promise<string> {
-  const identity = await ctx.auth.getUserIdentity();
-  if (!identity) {
-    throw new Error("Unauthorized");
-  }
-  return identity.subject;
-}
+import { mutation, query } from "./_generated/server";
+import { requireAuthenticatedUserId } from "./lib/auth";
 
 export const updatePreferences = mutation({
   args: {

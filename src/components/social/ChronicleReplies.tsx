@@ -9,9 +9,15 @@ interface ChronicleRepliesProps {
   replies: Reply[];
   onReply: (text: string) => void;
   onAvatarClick?: (userId: string) => void;
+  currentUserId?: string;
 }
 
-export function ChronicleReplies({ replies, onReply, onAvatarClick }: ChronicleRepliesProps) {
+export function ChronicleReplies({
+  replies,
+  onReply,
+  onAvatarClick,
+  currentUserId,
+}: ChronicleRepliesProps) {
   const [text, setText] = useState("");
 
   const handleSubmit = () => {
@@ -29,10 +35,12 @@ export function ChronicleReplies({ replies, onReply, onAvatarClick }: ChronicleR
         </p>
       )}
       {replies.map((reply) => {
+        const isCurrentUserReply =
+          reply.authorId === currentUserId || reply.authorId === "me";
         const user = getUserById(reply.authorId) ?? {
           id: reply.authorId,
-          displayName: "Reader",
-          handle: "reader",
+          displayName: isCurrentUserReply ? "You" : "Reader",
+          handle: isCurrentUserReply ? "you" : "reader",
         };
         return (
           <div key={reply.id} className="flex gap-2 py-2">
