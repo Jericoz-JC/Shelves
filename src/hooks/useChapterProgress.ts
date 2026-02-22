@@ -11,6 +11,50 @@ interface DisplayedLocation {
   };
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+export function resolveChapterIndexFromSpine(
+  spineIndex: number,
+  chapters: ChapterItem[]
+) {
+  const exactMatch = chapters.findIndex((chapter) => chapter.spineIndex === spineIndex);
+  if (exactMatch >= 0) return exactMatch;
+
+  let nearestPrevious = -1;
+  for (let i = 0; i < chapters.length; i += 1) {
+    if (chapters[i].spineIndex <= spineIndex) {
+      nearestPrevious = i;
+    } else {
+      break;
+    }
+  }
+  return nearestPrevious;
+}
+
+export function isLocationsMapReady(book: Book | null) {
+  const locations = book?.locations;
+  if (!locations || typeof locations.length !== "function") return false;
+  try {
+    return locations.length() > 0;
+  } catch {
+    return false;
+  }
+}
+
+export function computeChapterProgressValue(
+  currentPercent: number,
+  startPercent: number,
+  endPercent: number
+) {
+  if (!Number.isFinite(currentPercent)) return null;
+  if (!Number.isFinite(startPercent) || !Number.isFinite(endPercent)) return null;
+  if (endPercent <= startPercent) return null;
+  const raw = (currentPercent - startPercent) / (endPercent - startPercent);
+  return clamp(raw, 0, 1);
+}
+
 export function useChapterProgress(
   book: Book | null,
   rendition: Rendition | null,
@@ -37,16 +81,7 @@ export function useChapterProgress(
 
   const chapterIndex = useMemo(() => {
     if (!location || chapters.length === 0) return -1;
-    const spineIndex = location.start.index;
-    let idx = -1;
-    for (let i = 0; i < chapters.length; i += 1) {
-      if (chapters[i].spineIndex <= spineIndex) {
-        idx = i;
-      } else {
-        break;
-      }
-    }
-    return idx;
+    return resolveChapterIndexFromSpine(location.start.index, chapters);
   }, [location, chapters]);
 
   const currentChapter = chapterIndex >= 0 ? chapters[chapterIndex] : null;
@@ -57,43 +92,35 @@ export function useChapterProgress(
 
   const chapterProgress = useMemo(() => {
     if (!book || !currentChapter || !location) return null;
+    if (!isLocationsMapReady(book)) return null;
 
-    const currentPercent = location.start.percentage;
-    if (Number.isFinite(currentPercent)) {
-      const startCfi = currentChapter.cfiBase;
-      const nextChapter = chapters[chapterIndex + 1];
-      const endCfi = nextChapter?.cfiBase;
-
-      const safePercentFromCfi = (cfi?: string) => {
-        if (!book.locations || !cfi || typeof cfi !== "string") return null;
-        try {
-          return book.locations.percentageFromCfi(cfi);
-        } catch {
-          return null;
-        }
-      };
-
-      if (book.locations && startCfi) {
-        const startPercent = safePercentFromCfi(startCfi);
-        const endPercent = endCfi ? safePercentFromCfi(endCfi) : 1;
-
-        if (
-          startPercent !== null &&
-          endPercent !== null &&
-          endPercent > startPercent
-        ) {
-          const raw = (currentPercent - startPercent) / (endPercent - startPercent);
-          return Math.min(Math.max(raw, 0), 1);
-        }
+    const safePercentFromCfi = (cfi?: string) => {
+      if (!book.locations || !cfi || typeof cfi !== "string") return null;
+      try {
+        const percent = book.locations.percentageFromCfi(cfi);
+        return Number.isFinite(percent) ? percent : null;
+      } catch {
+        return null;
       }
-    }
+    };
 
-    const displayed = location.start.displayed;
-    if (displayed?.total) {
-      return displayed.page / displayed.total;
-    }
+    const startPercent = safePercentFromCfi(currentChapter.cfiBase);
+    if (startPercent === null) return null;
 
-    return null;
+    const nextChapter = chapters[chapterIndex + 1];
+    const endPercent = nextChapter?.cfiBase ? safePercentFromCfi(nextChapter.cfiBase) : 1;
+    if (endPercent === null) return null;
+
+    const currentPercentFromLocation = Number.isFinite(location.start.percentage)
+      ? location.start.percentage
+      : safePercentFromCfi(location.start.cfi);
+    if (currentPercentFromLocation === null) return null;
+
+    return computeChapterProgressValue(
+      currentPercentFromLocation,
+      startPercent,
+      endPercent
+    );
   }, [book, currentChapter, chapters, chapterIndex, location]);
 
   return {

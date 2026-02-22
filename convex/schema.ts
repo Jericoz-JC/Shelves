@@ -77,4 +77,22 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_chronicle", ["chronicleId"])
     .index("by_user_and_chronicle", ["userId", "chronicleId"]),
+
+  reposts: defineTable({
+    userId: v.string(),
+    chronicleId: v.id("chronicles"),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_chronicle", ["chronicleId"])
+    .index("by_user_and_chronicle", ["userId", "chronicleId"]),
+
+  bookmarks: defineTable({
+    userId: v.string(),
+    chronicleId: v.id("chronicles"),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_chronicle", ["chronicleId"])
+    .index("by_user_and_chronicle", ["userId", "chronicleId"]),
 });

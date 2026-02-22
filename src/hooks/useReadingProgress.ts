@@ -1,7 +1,12 @@
 import { useEffect, useRef, useCallback, useState } from "react";
+import { useMutation } from "convex/react";
 import type { Rendition } from "epubjs";
+import { api } from "../../convex/_generated/api";
 import { IndexedDBService } from "@/lib/db/indexedDB";
+import { getTempUserId } from "@/lib/utils/tempUserId";
 import type { BookProgress } from "@/types/book";
+
+const CONVEX_DEBOUNCE_MS = 30_000;
 
 interface UseReadingProgressOptions {
   bookHash: string | null;
@@ -16,7 +21,11 @@ export function useReadingProgress({
 }: UseReadingProgressOptions) {
   const [progress, setProgress] = useState<BookProgress | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const convexTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasRestoredRef = useRef(false);
+
+  const updateProgressMutation = useMutation(api.readingProgress.updateProgress);
+  const userId = getTempUserId();
 
   // Load saved progress on mount
   useEffect(() => {
@@ -40,12 +49,29 @@ export function useReadingProgress({
   const saveProgress = useCallback(
     (newProgress: BookProgress) => {
       setProgress(newProgress);
+
+      // 1s debounce → IndexedDB
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
         IndexedDBService.saveProgress(newProgress);
       }, debounceMs);
+
+      // 30s debounce → Convex
+      if (convexTimerRef.current) clearTimeout(convexTimerRef.current);
+      convexTimerRef.current = setTimeout(() => {
+        updateProgressMutation({
+          userId,
+          bookHash: newProgress.bookHash,
+          currentCFI: newProgress.currentCFI ?? undefined,
+          percentage: newProgress.percentage,
+          lastReadAt: newProgress.lastReadAt,
+          chapter: newProgress.chapter ?? undefined,
+        }).catch((err) => {
+          console.warn("[useReadingProgress] Convex sync failed:", err);
+        });
+      }, CONVEX_DEBOUNCE_MS);
     },
-    [debounceMs]
+    [debounceMs, updateProgressMutation, userId]
   );
 
   // Listen to relocation events
@@ -71,6 +97,7 @@ export function useReadingProgress({
     return () => {
       rendition.off("relocated", onRelocated);
       if (timerRef.current) clearTimeout(timerRef.current);
+      if (convexTimerRef.current) clearTimeout(convexTimerRef.current);
     };
   }, [rendition, bookHash, saveProgress]);
 
