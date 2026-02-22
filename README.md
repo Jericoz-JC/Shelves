@@ -41,4 +41,4 @@ MIT
 - What browsers are officially supported?
 - Should we include screenshots or a short demo GIF?
 - Do you want a privacy note about local-only storage?
-- Should we add deployment details for shelves.cloud?
+- Should we add deployment details for shelves.cloud?  
