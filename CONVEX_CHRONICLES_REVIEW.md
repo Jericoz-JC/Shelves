@@ -8,11 +8,57 @@
 
 ## Summary
 
-The Convex backend for Chronicles is **structurally sound** — schema design, cascade deletion, auth gating, and mutation logic are well-implemented. However, there are **6 critical integration gaps** and **4 moderate issues** that prevent the Convex backend from being production-ready in the UI. The biggest problems are (1) per-user reaction state never reaching the client, and (2) the `list` query returning top-level posts and replies indiscriminately.
+The Convex backend for Chronicles is **structurally sound** — schema design, cascade deletion, auth gating, and mutation logic are well-implemented. However, there are **7 critical integration gaps** and **4 moderate issues** that prevent the Convex backend from being production-ready in the UI. The biggest problems are (0) an auth race condition causing the reported "Unauthorized" error, (1) per-user reaction state never reaching the client, and (2) the `list` query returning top-level posts and replies indiscriminately.
 
 ---
 
-## Critical Issues (P0)
+## Root Cause: Issue #20 — "Convex Chronicle could not Post"
+
+**Error:** `Uncaught Error: Unauthorized at async handler (../convex/chronicles.ts:128:15)`
+
+### What happens
+
+1. User signs in via Clerk on the client.
+2. `useAuth().userId` from `@clerk/clerk-react` becomes truthy immediately.
+3. User posts a chronicle → `ensureAuthenticatedForWrite()` checks `userId` → returns `true`.
+4. `createMutation()` fires, but the Convex client **has not yet received the Clerk JWT token**.
+5. On the Convex server, `ctx.auth.getUserIdentity()` returns `null` → `requireAuthenticatedUserId()` throws `"Unauthorized"`.
+
+### Root cause
+
+**Auth race condition** — `useAuth().userId` (Clerk client state) and `useConvexAuth().isAuthenticated` (Convex token state) are two different signals. The hook was gating writes on the Clerk signal, but the Convex client needs its own token propagation to complete before mutations can carry auth.
+
+After Clerk sign-in, `ConvexProviderWithClerk` must:
+1. Request a JWT from Clerk's "convex" template.
+2. Send it to the Convex backend.
+3. Convex validates it against `auth.config.ts`.
+
+Until step 3 completes, `useConvexAuth().isAuthenticated` remains `false` even though `useAuth().userId` is set.
+
+### Fix applied
+
+**File:** `src/hooks/useConvexChronicles.ts`
+
+```diff
+- import { useMutation, useQuery } from "convex/react";
++ import { useConvexAuth, useMutation, useQuery } from "convex/react";
+
+  const { userId } = useAuth();
++ const { isAuthenticated } = useConvexAuth();
+
+  const ensureAuthenticatedForWrite = () => {
+-   if (userId) return true;
++   if (isAuthenticated) return true;
+    void openSignIn();
+    return false;
+  };
+```
+
+`useConvexAuth().isAuthenticated` only becomes `true` after the Convex client has received and validated the JWT. This eliminates the race window.
+
+---
+
+## Additional Critical Issues (P0)
 
 ### 1. `isLiked` / `isReposted` / `isBookmarked` are hardcoded `false`
 

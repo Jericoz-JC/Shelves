@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth, useClerk } from "@clerk/clerk-react";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { Reply } from "@/types/social";
@@ -8,6 +8,7 @@ import type { ChroniclesHook, NewChronicleDraft } from "./useChronicles";
 
 export function useConvexChronicles(): ChroniclesHook {
   const { userId } = useAuth();
+  const { isAuthenticated } = useConvexAuth();
   const { openSignIn } = useClerk();
   const rawChronicles = useQuery(api.chronicles.list, { limit: 50 }) ?? [];
 
@@ -43,7 +44,7 @@ export function useConvexChronicles(): ChroniclesHook {
   }));
 
   const ensureAuthenticatedForWrite = () => {
-    if (userId) return true;
+    if (isAuthenticated) return true;
     void openSignIn();
     return false;
   };
