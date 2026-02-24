@@ -8,9 +8,17 @@ export interface RankableChronicle {
   bookRef?: string;
 }
 
+export const NOW_BUCKET_DEFAULT_MS = 0;
+export const NOW_BUCKET_MAX_MS = 4_102_444_800_000;
+
 export function clampFeedLimit(limit: number | undefined, defaultValue: number, maxValue: number): number {
   if (typeof limit !== "number" || Number.isNaN(limit)) return defaultValue;
   return Math.max(1, Math.min(limit, maxValue));
+}
+
+export function sanitizeNowBucketMs(nowBucketMs: number): number {
+  const candidate = Number.isFinite(nowBucketMs) ? nowBucketMs : NOW_BUCKET_DEFAULT_MS;
+  return Math.max(NOW_BUCKET_DEFAULT_MS, Math.min(candidate, NOW_BUCKET_MAX_MS));
 }
 
 export function computeChronicleEngagementScore(chronicle: RankableChronicle): number {

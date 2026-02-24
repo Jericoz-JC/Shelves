@@ -3,7 +3,7 @@ import { internalMutation, mutation, query, type MutationCtx } from "./_generate
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { requireAuthenticatedUserId } from "./lib/auth";
-import { clampFeedLimit, rankForYouChronicles } from "./lib/feedRanking";
+import { clampFeedLimit, rankForYouChronicles, sanitizeNowBucketMs } from "./lib/feedRanking";
 
 const LIST_DEFAULT_LIMIT = 20;
 const FEED_DEFAULT_LIMIT = 40;
@@ -169,6 +169,7 @@ export const listForYou = query({
   },
   handler: async (ctx, { limit, nowBucketMs }) => {
     const safeLimit = clampFeedLimit(limit, FEED_DEFAULT_LIMIT, FEED_MAX_LIMIT);
+    const validatedNowBucketMs = sanitizeNowBucketMs(nowBucketMs);
     const candidatePoolSize = Math.min(
       FOR_YOU_MAX_POOL_SIZE,
       Math.max(safeLimit, safeLimit * FOR_YOU_POOL_MULTIPLIER)
@@ -180,7 +181,7 @@ export const listForYou = query({
       .order("desc")
       .take(candidatePoolSize);
 
-    return rankForYouChronicles(candidates, safeLimit, nowBucketMs);
+    return rankForYouChronicles(candidates, safeLimit, validatedNowBucketMs);
   },
 });
 

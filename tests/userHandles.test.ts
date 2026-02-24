@@ -38,6 +38,21 @@ describe("user handle helpers", () => {
     ]);
   });
 
+  it("falls back to a valid first candidate when seed is too short", () => {
+    expect(buildHandleCandidates("ab").slice(0, 3)).toEqual([
+      "reader",
+      "reader_2",
+      "reader_3",
+    ]);
+  });
+
+  it("avoids double underscores in suffixed candidates after truncation", () => {
+    const [first, second] = buildHandleCandidates("aaaaaaaaaaaaaaaaaaaaa_bbb", 3);
+    expect(first).toBe("aaaaaaaaaaaaaaaaaaaaa_bb");
+    expect(second).toBe("aaaaaaaaaaaaaaaaaaaaa_2");
+    expect(second.includes("__")).toBe(false);
+  });
+
   it("builds lowercased searchable text payload", () => {
     const searchText = buildUserSearchText({
       name: "Elena Marquez",

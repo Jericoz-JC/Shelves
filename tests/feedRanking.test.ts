@@ -3,7 +3,9 @@ import {
   clampFeedLimit,
   computeBaseChronicleScore,
   computeChronicleTimeDecay,
+  NOW_BUCKET_MAX_MS,
   rankForYouChronicles,
+  sanitizeNowBucketMs,
   type RankableChronicle,
 } from "../convex/lib/feedRanking";
 
@@ -31,6 +33,14 @@ describe("feed ranking algorithm", () => {
   it("applies the configured time decay floor", () => {
     const ancient = NOW - 1000 * 60 * 60 * 72;
     expect(computeChronicleTimeDecay(ancient, NOW)).toBe(0.5);
+  });
+
+  it("sanitizes malformed now buckets to deterministic bounds", () => {
+    expect(sanitizeNowBucketMs(NOW)).toBe(NOW);
+    expect(sanitizeNowBucketMs(Number.NaN)).toBe(0);
+    expect(sanitizeNowBucketMs(Number.POSITIVE_INFINITY)).toBe(0);
+    expect(sanitizeNowBucketMs(-10)).toBe(0);
+    expect(sanitizeNowBucketMs(NOW_BUCKET_MAX_MS + 1)).toBe(NOW_BUCKET_MAX_MS);
   });
 
   it("ranks high-reply engagement above like-heavy low-depth engagement", () => {

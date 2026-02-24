@@ -38,13 +38,17 @@ export function deriveHandleSeed(params: {
 }
 
 export function buildHandleCandidates(seed: string, maxVariants = 25): string[] {
-  const safeSeed = sanitizeHandleCandidate(seed) || "reader";
+  const sanitizedSeed = sanitizeHandleCandidate(seed);
+  const safeSeed = isValidHandle(sanitizedSeed) ? sanitizedSeed : "reader";
   const candidates = [safeSeed];
   for (let i = 2; i <= maxVariants; i += 1) {
     const suffix = `_${i}`;
     const baseLength = Math.max(1, HANDLE_MAX_LENGTH - suffix.length);
-    const next = `${safeSeed.slice(0, baseLength)}${suffix}`;
-    candidates.push(next);
+    const base = safeSeed.slice(0, baseLength).replace(/_+$/g, "") || "reader";
+    const next = `${base}${suffix}`;
+    if (isValidHandle(next)) {
+      candidates.push(next);
+    }
   }
   return candidates;
 }
