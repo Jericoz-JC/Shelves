@@ -14,6 +14,9 @@ export interface ReadingClub {
 
 export interface SuggestedReader {
   id: string;
+  displayName: string;
+  handle: string;
+  avatarUrl?: string;
   reason: string;
 }
 
@@ -62,14 +65,20 @@ export const readingClubs: ReadingClub[] = [
 export const suggestedReaders: SuggestedReader[] = [
   {
     id: "u1",
+    displayName: "Elena Marquez",
+    handle: "elenareads",
     reason: "Literary fiction picks",
   },
   {
     id: "u3",
+    displayName: "Priya Sharma",
+    handle: "priya_pages",
     reason: "Historical fiction thread",
   },
   {
     id: "u5",
+    displayName: "Sofia Andersson",
+    handle: "sofia_lit",
     reason: "Library-first recommendations",
   },
 ];

@@ -1,8 +1,10 @@
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { AriaAttributes } from "react";
 
 interface UserAvatarProps extends AriaAttributes {
   displayName: string;
+  avatarUrl?: string;
   size?: "sm" | "default" | "lg";
   className?: string;
   onClick?: () => void;
@@ -18,12 +20,19 @@ function getInitials(name: string): string {
 
 export function UserAvatar({
   displayName,
+  avatarUrl,
   size = "default",
   onClick,
   className,
   "aria-label": ariaLabel,
   ...ariaProps
 }: UserAvatarProps) {
+  const [showImage, setShowImage] = useState(Boolean(avatarUrl));
+
+  useEffect(() => {
+    setShowImage(Boolean(avatarUrl));
+  }, [avatarUrl]);
+
   const avatarClasses = cn(
     "shrink-0 rounded-full bg-accent/20 text-accent font-semibold flex items-center justify-center ring-1 ring-border/50",
     size === "sm" && "w-8 h-8 text-xs",
@@ -42,7 +51,16 @@ export function UserAvatar({
         {...ariaProps}
         className={avatarClasses}
       >
-        {getInitials(displayName)}
+        {avatarUrl && showImage ? (
+          <img
+            src={avatarUrl}
+            alt=""
+            onError={() => setShowImage(false)}
+            className="h-full w-full rounded-full object-cover"
+          />
+        ) : (
+          getInitials(displayName)
+        )}
       </button>
     );
   }
@@ -52,7 +70,16 @@ export function UserAvatar({
       {...ariaProps}
       className={avatarClasses}
     >
-      {getInitials(displayName)}
+      {avatarUrl && showImage ? (
+        <img
+          src={avatarUrl}
+          alt=""
+          onError={() => setShowImage(false)}
+          className="h-full w-full rounded-full object-cover"
+        />
+      ) : (
+        getInitials(displayName)
+      )}
     </div>
   );
 }

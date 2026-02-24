@@ -1,6 +1,5 @@
 import { useState } from "react";
 import type { Reply } from "@/types/social";
-import { getUserById } from "@/data/mockFeed";
 import { relativeTime } from "@/lib/utils/relativeTime";
 import { UserAvatar } from "./UserAvatar";
 import { Button } from "@/components/ui/button";
@@ -35,24 +34,22 @@ export function ChronicleReplies({
         </p>
       )}
       {replies.map((reply) => {
-        const isCurrentUserReply =
-          reply.authorId === currentUserId || reply.authorId === "me";
-        const user = getUserById(reply.authorId) ?? {
-          id: reply.authorId,
-          displayName: isCurrentUserReply ? "You" : "Reader",
-          handle: isCurrentUserReply ? "you" : "reader",
-        };
+        const isCurrentUserReply = reply.authorId === currentUserId;
+        const displayName =
+          reply.authorDisplayName ?? (isCurrentUserReply ? "You" : "Reader");
+
         return (
           <div key={reply.id} className="flex gap-2 py-2">
             <UserAvatar
-              displayName={user.displayName}
+              displayName={displayName}
+              avatarUrl={reply.authorAvatarUrl}
               size="sm"
-              onClick={onAvatarClick ? () => onAvatarClick(user.id) : undefined}
+              onClick={onAvatarClick ? () => onAvatarClick(reply.authorId) : undefined}
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1">
                 <span className="text-[13px] font-semibold truncate">
-                  {user.displayName}
+                  {displayName}
                 </span>
                 <span className="text-[12px] text-muted-foreground">&middot;</span>
                 <span className="text-[12px] text-muted-foreground shrink-0">

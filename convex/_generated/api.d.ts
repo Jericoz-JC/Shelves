@@ -10,9 +10,14 @@
 
 import type * as books from "../books.js";
 import type * as chronicles from "../chronicles.js";
+import type * as follows from "../follows.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_feedRanking from "../lib/feedRanking.js";
+import type * as lib_follows from "../lib/follows.js";
+import type * as lib_userHandles from "../lib/userHandles.js";
 import type * as readingProgress from "../readingProgress.js";
 import type * as userPreferences from "../userPreferences.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -23,9 +28,14 @@ import type {
 declare const fullApi: ApiFromModules<{
   books: typeof books;
   chronicles: typeof chronicles;
+  follows: typeof follows;
   "lib/auth": typeof lib_auth;
+  "lib/feedRanking": typeof lib_feedRanking;
+  "lib/follows": typeof lib_follows;
+  "lib/userHandles": typeof lib_userHandles;
   readingProgress: typeof readingProgress;
   userPreferences: typeof userPreferences;
+  users: typeof users;
 }>;
 
 /**
