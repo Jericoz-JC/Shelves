@@ -6,7 +6,16 @@ export default defineSchema({
     clerkId: v.string(),
     email: v.string(),
     name: v.optional(v.string()),
-  }).index("by_clerk_id", ["clerkId"]),
+    handle: v.optional(v.string()),
+    bio: v.optional(v.string()),
+    avatarUrl: v.optional(v.string()),
+    searchText: v.optional(v.string()),
+  })
+    .index("by_clerk_id", ["clerkId"])
+    .index("by_handle", ["handle"])
+    .searchIndex("search_users", {
+      searchField: "searchText",
+    }),
 
   books: defineTable({
     fileHash: v.string(),

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "@clerk/clerk-react";
 import type { FeedTab, FeedView, UserProfile } from "@/types/social";
 import { getUserById } from "@/data/mockFeed";
 import { mockUserBooks } from "@/data/mockReplies";
@@ -22,6 +23,7 @@ import { SocialLayout } from "@/components/social/SocialLayout";
 import { UserAvatar } from "@/components/social/UserAvatar";
 import { FollowToggleButton } from "@/components/social/FollowToggleButton";
 import { PageTransition } from "@/components/layout/PageTransition";
+import { resolveCurrentUserId } from "@/lib/social/identity";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +32,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const CURRENT_USER_ID = "me";
 const DISCOVERY_LOADING_DELAY_MS = 320;
 
 function getFeedView(pathname: string): FeedView {
@@ -42,9 +43,11 @@ function getFeedView(pathname: string): FeedView {
 }
 
 export default function Feed() {
+  const { userId } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { userId: routeProfileUserId } = useParams<{ userId: string }>();
+  const currentUserId = resolveCurrentUserId(userId);
 
   const isProfileRoute = location.pathname.startsWith("/feed/profile/");
   const feedView = getFeedView(location.pathname);
@@ -135,7 +138,7 @@ export default function Feed() {
 
     if (feedView === "following") {
       return posts.filter(
-        (post) => post.authorId === CURRENT_USER_ID || followedIds.has(post.authorId)
+        (post) => post.authorId === currentUserId || followedIds.has(post.authorId)
       );
     }
     if (feedView === "bookmarks") {
@@ -149,11 +152,11 @@ export default function Feed() {
     }
 
     return posts;
-  }, [feedView, followedIds, isProfileRoute, posts, routeProfileUserId]);
+  }, [currentUserId, feedView, followedIds, isProfileRoute, posts, routeProfileUserId]);
 
   const emptyMessage = useMemo(() => {
     if (isProfileRoute) {
-      return routeProfileUserId === CURRENT_USER_ID
+      return routeProfileUserId === currentUserId
         ? "You have not posted any chronicles yet."
         : "This reader has not posted any chronicles yet.";
     }
@@ -171,11 +174,11 @@ export default function Feed() {
     }
 
     return "No chronicles yet. Be the first to post.";
-  }, [feedView, isProfileRoute, routeProfileUserId]);
+  }, [currentUserId, feedView, isProfileRoute, routeProfileUserId]);
 
   // Derive profile sidebar data
   const profileUser = profileUserId ? (getUserById(profileUserId) ?? null) : null;
-  const isCurrentUser = profileUserId === CURRENT_USER_ID;
+  const isCurrentUser = profileUserId === currentUserId;
 
   const profileBooks = useMemo(() => {
     if (isCurrentUser) return libraryBooks;
@@ -199,7 +202,7 @@ export default function Feed() {
   const profileRouteUser = routeProfileUserId
     ? (getUserById(routeProfileUserId) ?? null)
     : null;
-  const isProfileCurrentUser = routeProfileUserId === CURRENT_USER_ID;
+  const isProfileCurrentUser = routeProfileUserId === currentUserId;
 
   const profileRouteUserWithEdits = useMemo(
     () =>
@@ -248,13 +251,13 @@ export default function Feed() {
   const navCounts = useMemo(
     () => ({
       following: posts.filter(
-        (post) => post.authorId !== CURRENT_USER_ID && followedIds.has(post.authorId)
+        (post) => post.authorId !== currentUserId && followedIds.has(post.authorId)
       ).length,
       bookmarks: posts.filter((post) => post.isBookmarked).length,
       likes: posts.filter((post) => post.isLiked).length,
       reposts: posts.filter((post) => post.isReposted).length,
     }),
-    [followedIds, posts]
+    [currentUserId, followedIds, posts]
   );
 
   const showTabs =
@@ -327,7 +330,7 @@ export default function Feed() {
           <div className="hidden md:block">
             <ChronicleComposer
               onPost={handlePost}
-              onAvatarClick={() => handleAvatarClick(CURRENT_USER_ID)}
+              onAvatarClick={() => handleAvatarClick(currentUserId)}
             />
           </div>
         )}
@@ -335,7 +338,7 @@ export default function Feed() {
         <FeedTimeline
           chronicles={filteredPosts}
           replies={replies}
-          currentUserId={CURRENT_USER_ID}
+          currentUserId={currentUserId}
           emptyMessage={emptyMessage}
           onLike={likeChronicle}
           onRepost={repostChronicle}
@@ -364,7 +367,7 @@ export default function Feed() {
           </DialogHeader>
           <ChronicleComposer
             onPost={handlePost}
-            onAvatarClick={() => handleAvatarClick(CURRENT_USER_ID)}
+            onAvatarClick={() => handleAvatarClick(currentUserId)}
             className="border-none pb-4"
             autoFocus
           />

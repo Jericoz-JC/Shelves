@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { useAuth, useClerk } from "@clerk/clerk-react";
+import { useClerk } from "@clerk/clerk-react";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { Reply } from "@/types/social";
 import type { ChroniclesHook, NewChronicleDraft } from "./useChronicles";
+import { mapChronicleDocToFeedChronicle } from "@/lib/social/mapChronicles";
 
 export function useConvexChronicles(): ChroniclesHook {
-  const { userId } = useAuth();
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { openSignIn } = useClerk();
   const rawChronicles = useQuery(api.chronicles.list, { limit: 50 }) ?? [];
@@ -24,24 +24,7 @@ export function useConvexChronicles(): ChroniclesHook {
   const removeMutation = useMutation(api.chronicles.remove);
   const replyMutation = useMutation(api.chronicles.addReply);
 
-  const chronicles = rawChronicles.map((doc) => ({
-    id: doc._id,
-    // Map the signed-in user's Clerk subject to "me" so existing UI ownership checks keep working.
-    authorId: doc.authorId === userId ? "me" : doc.authorId,
-    text: doc.text,
-    createdAt: doc.createdAt,
-    likeCount: doc.likeCount,
-    replyCount: doc.replyCount,
-    repostCount: doc.repostCount,
-    // Per-user states require separate queries, wired in a future pass.
-    isLiked: false,
-    isReposted: false,
-    isBookmarked: false,
-    highlightText: doc.highlightText,
-    bookTitle: doc.bookTitle,
-    bookHash: doc.bookRef,
-    spoilerTag: doc.spoilerTag,
-  }));
+  const chronicles = rawChronicles.map(mapChronicleDocToFeedChronicle);
 
   const ensureAuthenticatedForWrite = () => {
     if (isAuthenticated) return true;
