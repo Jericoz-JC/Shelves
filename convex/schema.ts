@@ -58,7 +58,8 @@ export default defineSchema({
   })
     .index("by_author", ["authorId"])
     .index("by_created", ["createdAt"])
-    .index("by_parent_chronicle", ["parentChronicleId"]),
+    .index("by_parent_chronicle", ["parentChronicleId"])
+    .index("by_parent_and_created", ["parentChronicleId", "createdAt"]),
 
   follows: defineTable({
     followerId: v.string(),

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth, useClerk } from "@clerk/clerk-react";
-import { useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { Reply } from "@/types/social";
@@ -8,6 +8,7 @@ import type { ChroniclesHook, NewChronicleDraft } from "./useChronicles";
 
 export function useConvexChronicles(): ChroniclesHook {
   const { userId } = useAuth();
+  const { isAuthenticated, isLoading } = useConvexAuth();
   const { openSignIn } = useClerk();
   const rawChronicles = useQuery(api.chronicles.list, { limit: 50 }) ?? [];
 
@@ -43,8 +44,9 @@ export function useConvexChronicles(): ChroniclesHook {
   }));
 
   const ensureAuthenticatedForWrite = () => {
-    if (userId) return true;
-    void openSignIn();
+    if (isAuthenticated) return true;
+    // Don't prompt sign-in while the Convex JWT is still propagating.
+    if (!isLoading) void openSignIn();
     return false;
   };
 
@@ -102,10 +104,11 @@ export function useConvexChronicles(): ChroniclesHook {
     },
 
     addReply: (chronicleId: string, text: string): Reply => {
-      const newReply = buildOptimisticReply(chronicleId, text);
       if (!ensureAuthenticatedForWrite()) {
-        return newReply;
+        return { id: "", chronicleId, authorId: "me", text, createdAt: 0 };
       }
+
+      const newReply = buildOptimisticReply(chronicleId, text);
 
       setLocalReplies((prev) => ({
         ...prev,
