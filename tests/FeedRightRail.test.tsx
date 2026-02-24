@@ -1,5 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import type { ReactElement } from "react";
+import { describe, expect, it, vi } from "vitest";
+import { MemoryRouter } from "react-router-dom";
 import {
   readingClubs,
   suggestedReaders,
@@ -7,9 +9,16 @@ import {
 } from "@/data/mockDiscovery";
 import { FeedRightRail } from "@/components/social/FeedRightRail";
 
+vi.mock("convex/react", () => ({
+  useQuery: () => [],
+}));
+
 describe("FeedRightRail", () => {
+  const renderRail = (ui: ReactElement) =>
+    render(<MemoryRouter>{ui}</MemoryRouter>);
+
   it("renders loading skeleton layout while discovery data is loading", () => {
-    const { container } = render(
+    const { container } = renderRail(
       <FeedRightRail
         trending={trendingBooks}
         clubs={readingClubs}
@@ -27,7 +36,7 @@ describe("FeedRightRail", () => {
   });
 
   it("renders discovery widgets when loading completes", () => {
-    render(
+    renderRail(
       <FeedRightRail
         trending={trendingBooks}
         clubs={readingClubs}
@@ -41,7 +50,7 @@ describe("FeedRightRail", () => {
   });
 
   it("renders widget shells with empty data arrays", () => {
-    render(<FeedRightRail trending={[]} clubs={[]} suggested={[]} />);
+    renderRail(<FeedRightRail trending={[]} clubs={[]} suggested={[]} />);
 
     expect(screen.getByText("Trending Books")).toBeInTheDocument();
     expect(screen.getByText("Active Reading Clubs")).toBeInTheDocument();
@@ -49,7 +58,7 @@ describe("FeedRightRail", () => {
   });
 
   it("allows users to type in the search input", () => {
-    render(
+    renderRail(
       <FeedRightRail
         trending={trendingBooks}
         clubs={readingClubs}
@@ -58,11 +67,11 @@ describe("FeedRightRail", () => {
     );
 
     const searchInput = screen.getByPlaceholderText(
-      "Search readers, books, chronicles"
+      "Search reader handles"
     );
     fireEvent.change(searchInput, { target: { value: "pachinko" } });
 
     expect(searchInput).toHaveValue("pachinko");
-    expect(screen.getByText("Search results are coming soon.")).toBeInTheDocument();
+    expect(screen.queryByText("Search results are coming soon.")).not.toBeInTheDocument();
   });
 });

@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@clerk/clerk-react";
-import type { FeedTab, FeedView, UserProfile } from "@/types/social";
-import { getUserById } from "@/data/mockFeed";
+import { useMutation, useQuery } from "convex/react";
+import { api } from "../../convex/_generated/api";
+import type { FeedTab, FeedView, SocialUser, UserProfile } from "@/types/social";
 import { mockUserBooks } from "@/data/mockReplies";
 import { useConvexChronicles as useChronicles } from "@/hooks/useConvexChronicles";
+import { useConvexFollows } from "@/hooks/useConvexFollows";
+import { useConvexUsers } from "@/hooks/useConvexUsers";
 import {
   readingClubs,
   suggestedReaders,
@@ -34,6 +37,19 @@ import {
 
 const DISCOVERY_LOADING_DELAY_MS = 320;
 
+type ConvexUserDoc = {
+  clerkId: string;
+  name?: string;
+  handle?: string;
+  bio?: string;
+  avatarUrl?: string;
+};
+
+const usersApi = (api as unknown as { users: Record<string, unknown> }).users as {
+  getByClerkId: unknown;
+  updateProfile: unknown;
+};
+
 function getFeedView(pathname: string): FeedView {
   if (pathname === "/feed/following") return "following";
   if (pathname === "/feed/bookmarks") return "bookmarks";
@@ -42,8 +58,32 @@ function getFeedView(pathname: string): FeedView {
   return "home";
 }
 
+function toSocialUser(user: ConvexUserDoc | null | undefined): SocialUser | null {
+  if (!user) return null;
+  return {
+    id: user.clerkId,
+    displayName: user.name ?? "Reader",
+    handle: user.handle ?? "reader",
+    bio: user.bio,
+    avatarUrl: user.avatarUrl,
+  };
+}
+
+function toEditableProfile(user: SocialUser | null): UserProfile | undefined {
+  if (!user) return undefined;
+  return {
+    displayName: user.displayName,
+    handle: user.handle,
+    bio: user.bio ?? "",
+  };
+}
+
 export default function Feed() {
   const { userId } = useAuth();
+  const { me } = useConvexUsers();
+  const { followedIds, toggleFollow } = useConvexFollows();
+  const updateProfile = useMutation(usersApi.updateProfile as never);
+
   const location = useLocation();
   const navigate = useNavigate();
   const { userId: routeProfileUserId } = useParams<{ userId: string }>();
@@ -62,30 +102,14 @@ export default function Feed() {
     bookmarkChronicle,
     deleteChronicle,
     addReply,
-  } = useChronicles();
+  } = useChronicles(activeTab);
 
-  // TODO: Extract feed/follow/profile concerns into dedicated hooks as backend wiring lands.
-  // Profile sidebar state
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
   const [discoveryLoading, setDiscoveryLoading] = useState(true);
 
-  // User profile (editable)
-  const [userProfile, setUserProfile] = useState<UserProfile>({
-    displayName: "You",
-    handle: "you",
-    bio: "Avid reader and book lover.",
-  });
-
-  // Follows default: all mock users
-  const [followedIds, setFollowedIds] = useState<Set<string>>(
-    new Set(["u1", "u2", "u3", "u4", "u5"])
-  );
-
-  // Real books from IndexedDB for current user
   const { books: libraryBooks } = useLibrary();
-
   const {
     navRef,
     offsetPx: navTranslateYPx,
@@ -106,28 +130,37 @@ export default function Feed() {
     return () => window.clearTimeout(timer);
   }, []);
 
+  const profileUserDoc = useQuery(
+    usersApi.getByClerkId as never,
+    profileUserId ? ({ clerkId: profileUserId } as never) : "skip"
+  ) as ConvexUserDoc | null | undefined;
+
+  const routeProfileUserDoc = useQuery(
+    usersApi.getByClerkId as never,
+    routeProfileUserId ? ({ clerkId: routeProfileUserId } as never) : "skip"
+  ) as ConvexUserDoc | null | undefined;
+
+  const meUser = toSocialUser(me as ConvexUserDoc | null | undefined);
+
   const handlePost = (text: string) => {
     addChronicle({ text });
     setComposeOpen(false);
     navigate("/feed");
   };
 
-  const handleToggleFollow = (userId: string) => {
-    setFollowedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(userId)) next.delete(userId);
-      else next.add(userId);
-      return next;
-    });
-  };
-
-  const handleAvatarClick = (userId: string) => {
-    setProfileUserId(userId);
+  const handleAvatarClick = (selectedUserId: string) => {
+    setProfileUserId(selectedUserId);
     setProfileOpen(true);
   };
 
   const handleSaveProfile = (profile: UserProfile) => {
-    setUserProfile(profile);
+    void updateProfile({
+      name: profile.displayName,
+      handle: profile.handle,
+      bio: profile.bio,
+    }).catch((err) => {
+      console.error("[Feed] Failed to update profile:", err);
+    });
   };
 
   const filteredPosts = useMemo(() => {
@@ -137,9 +170,7 @@ export default function Feed() {
     }
 
     if (feedView === "following") {
-      return posts.filter(
-        (post) => post.authorId === currentUserId || followedIds.has(post.authorId)
-      );
+      return posts;
     }
     if (feedView === "bookmarks") {
       return posts.filter((post) => post.isBookmarked);
@@ -152,7 +183,7 @@ export default function Feed() {
     }
 
     return posts;
-  }, [currentUserId, feedView, followedIds, isProfileRoute, posts, routeProfileUserId]);
+  }, [feedView, isProfileRoute, posts, routeProfileUserId]);
 
   const emptyMessage = useMemo(() => {
     if (isProfileRoute) {
@@ -176,8 +207,12 @@ export default function Feed() {
     return "No chronicles yet. Be the first to post.";
   }, [currentUserId, feedView, isProfileRoute, routeProfileUserId]);
 
-  // Derive profile sidebar data
-  const profileUser = profileUserId ? (getUserById(profileUserId) ?? null) : null;
+  const profileUser = useMemo(() => {
+    if (!profileUserId) return null;
+    if (profileUserId === currentUserId) return meUser;
+    return toSocialUser(profileUserDoc);
+  }, [currentUserId, meUser, profileUserDoc, profileUserId]);
+
   const isCurrentUser = profileUserId === currentUserId;
 
   const profileBooks = useMemo(() => {
@@ -186,59 +221,28 @@ export default function Feed() {
     return [];
   }, [isCurrentUser, profileUserId, libraryBooks]);
 
-  const profileUserWithEdits = useMemo(
-    () =>
-      profileUser && isCurrentUser
-        ? {
-            ...profileUser,
-            displayName: userProfile.displayName,
-            handle: userProfile.handle,
-            bio: userProfile.bio,
-          }
-        : profileUser,
-    [isCurrentUser, profileUser, userProfile.bio, userProfile.displayName, userProfile.handle]
-  );
+  const profileRouteUser = useMemo(() => {
+    if (!routeProfileUserId) return null;
+    if (routeProfileUserId === currentUserId) return meUser;
+    return toSocialUser(routeProfileUserDoc);
+  }, [currentUserId, meUser, routeProfileUserDoc, routeProfileUserId]);
 
-  const profileRouteUser = routeProfileUserId
-    ? (getUserById(routeProfileUserId) ?? null)
-    : null;
   const isProfileCurrentUser = routeProfileUserId === currentUserId;
 
-  const profileRouteUserWithEdits = useMemo(
-    () =>
-      profileRouteUser && isProfileCurrentUser
-        ? {
-            ...profileRouteUser,
-            displayName: userProfile.displayName,
-            handle: userProfile.handle,
-            bio: userProfile.bio,
-          }
-        : profileRouteUser,
-    [
-      isProfileCurrentUser,
-      profileRouteUser,
-      userProfile.bio,
-      userProfile.displayName,
-      userProfile.handle,
-    ]
-  );
-
   const headerTitle = useMemo(() => {
-    if (isProfileRoute) return profileRouteUserWithEdits?.displayName || "Profile";
+    if (isProfileRoute) return profileRouteUser?.displayName || "Profile";
     if (feedView === "following") return "Following";
     if (feedView === "bookmarks") return "Bookmarks";
     if (feedView === "likes") return "Liked Chronicles";
     if (feedView === "reposts") return "Reposted Chronicles";
     return "Chronicles";
-  }, [feedView, isProfileRoute, profileRouteUserWithEdits?.displayName]);
+  }, [feedView, isProfileRoute, profileRouteUser?.displayName]);
 
   const headerSubtitle = useMemo(() => {
     if (isProfileRoute) {
-      if (!profileRouteUserWithEdits) return "Reader not found";
-      const profileCount = posts.filter(
-        (post) => post.authorId === profileRouteUserWithEdits.id
-      ).length;
-      return `@${profileRouteUserWithEdits.handle} | ${profileCount} chronicles`;
+      if (!profileRouteUser) return "Reader not found";
+      const profileCount = posts.filter((post) => post.authorId === profileRouteUser.id).length;
+      return `@${profileRouteUser.handle} | ${profileCount} chronicles`;
     }
     if (feedView === "home") return "For You";
     if (feedView === "following") return "From readers you follow";
@@ -246,7 +250,7 @@ export default function Feed() {
     if (feedView === "likes") return "Chronicles you liked";
     if (feedView === "reposts") return "Chronicles you reposted";
     return undefined;
-  }, [feedView, isProfileRoute, posts, profileRouteUserWithEdits]);
+  }, [feedView, isProfileRoute, posts, profileRouteUser]);
 
   const navCounts = useMemo(
     () => ({
@@ -293,25 +297,26 @@ export default function Feed() {
           }
         />
 
-        {isProfileRoute && profileRouteUserWithEdits && (
+        {isProfileRoute && profileRouteUser && (
           <section className="border-b border-border/50 px-4 py-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3">
                 <UserAvatar
-                  displayName={profileRouteUserWithEdits.displayName}
+                  displayName={profileRouteUser.displayName}
+                  avatarUrl={profileRouteUser.avatarUrl}
                   size="default"
-                  onClick={() => handleAvatarClick(profileRouteUserWithEdits.id)}
+                  onClick={() => handleAvatarClick(profileRouteUser.id)}
                 />
                 <div className="min-w-0">
                   <p className="truncate text-base font-semibold">
-                    {profileRouteUserWithEdits.displayName}
+                    {profileRouteUser.displayName}
                   </p>
                   <p className="truncate text-sm text-muted-foreground">
-                    @{profileRouteUserWithEdits.handle}
+                    @{profileRouteUser.handle}
                   </p>
-                  {profileRouteUserWithEdits.bio && (
+                  {profileRouteUser.bio && (
                     <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                      {profileRouteUserWithEdits.bio}
+                      {profileRouteUser.bio}
                     </p>
                   )}
                 </div>
@@ -319,7 +324,7 @@ export default function Feed() {
               {!isProfileCurrentUser && routeProfileUserId && (
                 <FollowToggleButton
                   isFollowing={followedIds.has(routeProfileUserId)}
-                  onToggle={() => handleToggleFollow(routeProfileUserId)}
+                  onToggle={() => toggleFollow(routeProfileUserId)}
                 />
               )}
             </div>
@@ -375,19 +380,17 @@ export default function Feed() {
       </Dialog>
 
       <ProfileSidebar
-        user={profileUserWithEdits}
+        user={profileUser}
         open={profileOpen}
         onOpenChange={setProfileOpen}
         chronicles={posts}
         books={profileBooks}
         isCurrentUser={isCurrentUser}
-        userProfile={userProfile}
-        onSaveProfile={handleSaveProfile}
+        userProfile={toEditableProfile(isCurrentUser ? meUser : null)}
+        onSaveProfile={isCurrentUser ? handleSaveProfile : undefined}
         isFollowing={profileUserId ? followedIds.has(profileUserId) : undefined}
         onToggleFollow={
-          profileUserId && !isCurrentUser
-            ? () => handleToggleFollow(profileUserId)
-            : undefined
+          profileUserId && !isCurrentUser ? () => toggleFollow(profileUserId) : undefined
         }
       />
     </PageTransition>

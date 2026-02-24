@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { MoreHorizontal, Trash2 } from "lucide-react";
 import type { Chronicle, Reply } from "@/types/social";
-import { getUserById } from "@/data/mockFeed";
 import { relativeTime } from "@/lib/utils/relativeTime";
 import { UserAvatar } from "./UserAvatar";
 import { ChronicleActions } from "./ChronicleActions";
@@ -47,28 +46,26 @@ export function ChronicleCard({
 }: ChronicleCardProps) {
   const [showReplies, setShowReplies] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const user = getUserById(chronicle.authorId) ?? {
-    id: chronicle.authorId,
-    displayName: chronicle.authorId === currentUserId ? "You" : "Reader",
-    handle: chronicle.authorId === currentUserId ? "you" : "reader",
-  };
-
   const isOwn = chronicle.authorId === currentUserId;
+  const displayName =
+    chronicle.authorDisplayName ?? (isOwn ? "You" : "Reader");
+  const handle = chronicle.authorHandle ?? (isOwn ? "you" : "reader");
 
   return (
     <div>
       <div className="flex gap-3 px-4 py-3 border-b border-border/50 hover:bg-secondary/30 transition-colors">
         <UserAvatar
-          displayName={user.displayName}
-          onClick={() => onAvatarClick(user.id)}
+          displayName={displayName}
+          avatarUrl={chronicle.authorAvatarUrl}
+          onClick={() => onAvatarClick(chronicle.authorId)}
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <span className="text-[15px] font-semibold truncate">
-              {user.displayName}
+              {displayName}
             </span>
             <span className="text-[13px] text-muted-foreground truncate">
-              @{user.handle}
+              @{handle}
             </span>
             <span className="text-[13px] text-muted-foreground">&middot;</span>
             <span className="text-[13px] text-muted-foreground shrink-0">
