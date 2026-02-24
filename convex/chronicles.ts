@@ -127,6 +127,30 @@ export const listReplies = query({
       .take(Math.min(limit, REPLIES_MAX_LIMIT)),
 });
 
+export const listRepliesBatch = query({
+  args: {
+    parentIds: v.array(v.id("chronicles")),
+    limitPerParent: v.optional(v.number()),
+  },
+  handler: async (ctx, { parentIds, limitPerParent = REPLIES_DEFAULT_LIMIT }) => {
+    const safeLimit = Math.min(limitPerParent, REPLIES_MAX_LIMIT);
+    const uniqueParentIds = [...new Set(parentIds)];
+
+    const entries = await Promise.all(
+      uniqueParentIds.map(async (parentId) => {
+        const replies = await ctx.db
+          .query("chronicles")
+          .withIndex("by_parent_chronicle", (q) => q.eq("parentChronicleId", parentId))
+          .order("asc")
+          .take(safeLimit);
+        return [parentId, replies] as const;
+      })
+    );
+
+    return Object.fromEntries(entries);
+  },
+});
+
 export const listForYou = query({
   args: {
     limit: v.optional(v.number()),

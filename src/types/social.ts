@@ -9,6 +9,9 @@ export interface SocialUser {
 export interface Chronicle {
   id: string;
   authorId: string;
+  authorDisplayName?: string;
+  authorHandle?: string;
+  authorAvatarUrl?: string;
   text: string;
   createdAt: number;
   likeCount: number;
