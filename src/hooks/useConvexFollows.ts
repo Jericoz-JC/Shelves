@@ -5,21 +5,15 @@ import { api } from "../../convex/_generated/api";
 
 const EMPTY_FOLLOWING_IDS: string[] = [];
 
-const followsApi = (api as unknown as { follows: Record<string, unknown> }).follows as {
-  follow: unknown;
-  unfollow: unknown;
-  listFollowing: unknown;
-};
-
 export function useConvexFollows() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { openSignIn } = useClerk();
 
-  const followMutation = useMutation(followsApi.follow as never);
-  const unfollowMutation = useMutation(followsApi.unfollow as never);
+  const followMutation = useMutation(api.follows.follow);
+  const unfollowMutation = useMutation(api.follows.unfollow);
   const followingIds =
     ((useQuery(
-      followsApi.listFollowing as never,
+      api.follows.listFollowing,
       isAuthenticated ? {} : "skip"
     ) as string[] | undefined) ?? EMPTY_FOLLOWING_IDS);
 

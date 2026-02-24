@@ -23,24 +23,6 @@ const RANKING_REFRESH_MS = 60_000;
 const EMPTY_CHRONICLES: ChronicleDocLike[] = [];
 const EMPTY_AUTHORS: AuthorRecord[] = [];
 
-const chroniclesApi = (api as unknown as { chronicles: Record<string, unknown> }).chronicles as {
-  listForYou: unknown;
-  listFollowing: unknown;
-  listRepliesBatch: unknown;
-  userReactionStates: unknown;
-  create: unknown;
-  like: unknown;
-  repost: unknown;
-  bookmark: unknown;
-  remove: unknown;
-  addReply: unknown;
-};
-
-const usersApi = (api as unknown as { users: Record<string, unknown> }).users as {
-  getMe: unknown;
-  getBatch: unknown;
-};
-
 export function useConvexChronicles(feedType: FeedType = "forYou"): ChroniclesHook {
   const { userId } = useAuth();
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -58,14 +40,17 @@ export function useConvexChronicles(feedType: FeedType = "forYou"): ChroniclesHo
     return () => window.clearInterval(interval);
   }, []);
 
-  const rawChroniclesResult = useQuery(
-    (feedType === "following"
-      ? chroniclesApi.listFollowing
-      : chroniclesApi.listForYou) as never,
-    (feedType === "following"
-      ? { limit: FEED_LIMIT }
-      : { limit: FEED_LIMIT, nowBucketMs }) as never
-  ) as ChronicleDocLike[] | undefined;
+  const forYouChronicles = useQuery(
+    api.chronicles.listForYou,
+    feedType === "forYou" ? { limit: FEED_LIMIT, nowBucketMs } : "skip"
+  );
+  const followingChronicles = useQuery(
+    api.chronicles.listFollowing,
+    feedType === "following" ? { limit: FEED_LIMIT } : "skip"
+  );
+  const rawChroniclesResult = (feedType === "following"
+    ? followingChronicles
+    : forYouChronicles) as ChronicleDocLike[] | undefined;
   const rawChronicles = rawChroniclesResult ?? EMPTY_CHRONICLES;
 
   const chronicleIds = useMemo(
@@ -74,8 +59,8 @@ export function useConvexChronicles(feedType: FeedType = "forYou"): ChroniclesHo
   );
 
   const reactionStates = useQuery(
-    chroniclesApi.userReactionStates as never,
-    chronicleIds.length > 0 ? ({ chronicleIds } as never) : "skip"
+    api.chronicles.userReactionStates,
+    chronicleIds.length > 0 ? { chronicleIds } : "skip"
   ) as Record<string, ReactionState> | undefined;
 
   const authorIds = useMemo(
@@ -84,20 +69,20 @@ export function useConvexChronicles(feedType: FeedType = "forYou"): ChroniclesHo
   );
 
   const authorsResult = useQuery(
-    usersApi.getBatch as never,
-    authorIds.length > 0 ? ({ clerkIds: authorIds } as never) : "skip"
+    api.users.getBatch,
+    authorIds.length > 0 ? { clerkIds: authorIds } : "skip"
   ) as AuthorRecord[] | undefined;
   const authors = authorsResult ?? EMPTY_AUTHORS;
 
-  const me = useQuery(usersApi.getMe as never, isAuthenticated ? ({} as never) : "skip") as
+  const me = useQuery(api.users.getMe, isAuthenticated ? {} : "skip") as
     | (AuthorRecord & { handle?: string })
     | null
     | undefined;
 
   const replyDocMap = useQuery(
-    chroniclesApi.listRepliesBatch as never,
+    api.chronicles.listRepliesBatch,
     chronicleIds.length > 0
-      ? ({ parentIds: chronicleIds, limitPerParent: 30 } as never)
+      ? { parentIds: chronicleIds, limitPerParent: 30 }
       : "skip"
   ) as Record<string, ReplyDocLike[]> | undefined;
 
@@ -113,17 +98,17 @@ export function useConvexChronicles(feedType: FeedType = "forYou"): ChroniclesHo
   }, [replyDocMap]);
 
   const replyAuthorsResult = useQuery(
-    usersApi.getBatch as never,
-    replyAuthorIds.length > 0 ? ({ clerkIds: replyAuthorIds } as never) : "skip"
+    api.users.getBatch,
+    replyAuthorIds.length > 0 ? { clerkIds: replyAuthorIds } : "skip"
   ) as AuthorRecord[] | undefined;
   const replyAuthors = replyAuthorsResult ?? EMPTY_AUTHORS;
 
-  const createMutation = useMutation(chroniclesApi.create as never);
-  const likeMutation = useMutation(chroniclesApi.like as never);
-  const repostMutation = useMutation(chroniclesApi.repost as never);
-  const bookmarkMutation = useMutation(chroniclesApi.bookmark as never);
-  const removeMutation = useMutation(chroniclesApi.remove as never);
-  const replyMutation = useMutation(chroniclesApi.addReply as never);
+  const createMutation = useMutation(api.chronicles.create);
+  const likeMutation = useMutation(api.chronicles.like);
+  const repostMutation = useMutation(api.chronicles.repost);
+  const bookmarkMutation = useMutation(api.chronicles.bookmark);
+  const removeMutation = useMutation(api.chronicles.remove);
+  const replyMutation = useMutation(api.chronicles.addReply);
 
   const authorById = useMemo(() => {
     const allAuthors = [...authors, ...replyAuthors];

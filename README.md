@@ -56,6 +56,12 @@ Shelves is a local-first ePub reader with social posting ("Chronicles"), built o
 4. Open:
    - `http://localhost:5173`
 
+## Convex Codegen Workflow
+- After changing any file in `convex/` that adds/removes/renames public functions, regenerate client bindings:
+  - `npx convex codegen`
+- Commit updated generated files in `convex/_generated/`.
+- If generated bindings are stale, `npm run build` will fail during TypeScript checks.
+
 ## Scripts
 - `npm run dev` - start Vite dev server
 - `npm run dev:harness` - start dev server opening `/reader-harness`

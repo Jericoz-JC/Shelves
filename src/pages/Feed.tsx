@@ -45,11 +45,6 @@ type ConvexUserDoc = {
   avatarUrl?: string;
 };
 
-const usersApi = (api as unknown as { users: Record<string, unknown> }).users as {
-  getByClerkId: unknown;
-  updateProfile: unknown;
-};
-
 function getFeedView(pathname: string): FeedView {
   if (pathname === "/feed/following") return "following";
   if (pathname === "/feed/bookmarks") return "bookmarks";
@@ -82,7 +77,7 @@ export default function Feed() {
   const { userId } = useAuth();
   const { me } = useConvexUsers();
   const { followedIds, toggleFollow } = useConvexFollows();
-  const updateProfile = useMutation(usersApi.updateProfile as never);
+  const updateProfile = useMutation(api.users.updateProfile);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -131,13 +126,13 @@ export default function Feed() {
   }, []);
 
   const profileUserDoc = useQuery(
-    usersApi.getByClerkId as never,
-    profileUserId ? ({ clerkId: profileUserId } as never) : "skip"
+    api.users.getByClerkId,
+    profileUserId ? { clerkId: profileUserId } : "skip"
   ) as ConvexUserDoc | null | undefined;
 
   const routeProfileUserDoc = useQuery(
-    usersApi.getByClerkId as never,
-    routeProfileUserId ? ({ clerkId: routeProfileUserId } as never) : "skip"
+    api.users.getByClerkId,
+    routeProfileUserId ? { clerkId: routeProfileUserId } : "skip"
   ) as ConvexUserDoc | null | undefined;
 
   const meUser = toSocialUser(me as ConvexUserDoc | null | undefined);
