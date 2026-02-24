@@ -101,6 +101,23 @@ export function useConvexChronicles(feedType: FeedType = "forYou"): ChroniclesHo
       : "skip"
   ) as Record<string, ReplyDocLike[]> | undefined;
 
+  const replyAuthorIds = useMemo(() => {
+    if (!replyDocMap) return [];
+    return [
+      ...new Set(
+        Object.values(replyDocMap)
+          .flat()
+          .map((reply) => reply.authorId)
+      ),
+    ];
+  }, [replyDocMap]);
+
+  const replyAuthorsResult = useQuery(
+    usersApi.getBatch as never,
+    replyAuthorIds.length > 0 ? ({ clerkIds: replyAuthorIds } as never) : "skip"
+  ) as AuthorRecord[] | undefined;
+  const replyAuthors = replyAuthorsResult ?? EMPTY_AUTHORS;
+
   const createMutation = useMutation(chroniclesApi.create as never);
   const likeMutation = useMutation(chroniclesApi.like as never);
   const repostMutation = useMutation(chroniclesApi.repost as never);
@@ -108,10 +125,10 @@ export function useConvexChronicles(feedType: FeedType = "forYou"): ChroniclesHo
   const removeMutation = useMutation(chroniclesApi.remove as never);
   const replyMutation = useMutation(chroniclesApi.addReply as never);
 
-  const authorById = useMemo(
-    () => new Map(authors.map((author) => [author.clerkId, author])),
-    [authors]
-  );
+  const authorById = useMemo(() => {
+    const allAuthors = [...authors, ...replyAuthors];
+    return new Map(allAuthors.map((author) => [author.clerkId, author]));
+  }, [authors, replyAuthors]);
 
   const chronicles = useMemo(
     () =>
@@ -130,9 +147,23 @@ export function useConvexChronicles(feedType: FeedType = "forYou"): ChroniclesHo
   const serverReplies = useMemo(() => {
     if (!replyDocMap) return {};
     return Object.fromEntries(
-      Object.entries(replyDocMap).map(([parentId, replies]) => [parentId, mapReplyDocs(replies)])
+      Object.entries(replyDocMap).map(([parentId, replies]) => [
+        parentId,
+        mapReplyDocs(replies).map((reply) => {
+          const author = authorById.get(reply.authorId);
+          const isCurrentUserReply = reply.authorId === currentUserId;
+          return {
+            ...reply,
+            authorDisplayName:
+              author?.name ?? (isCurrentUserReply ? me?.name ?? "You" : "Reader"),
+            authorHandle:
+              author?.handle ?? (isCurrentUserReply ? me?.handle ?? "you" : "reader"),
+            authorAvatarUrl: author?.avatarUrl,
+          };
+        }),
+      ])
     );
-  }, [replyDocMap]);
+  }, [authorById, currentUserId, me?.handle, me?.name, replyDocMap]);
 
   const mergedReplies = useMemo(
     () => mergeReplyMaps(serverReplies, localReplies),
@@ -149,6 +180,9 @@ export function useConvexChronicles(feedType: FeedType = "forYou"): ChroniclesHo
     id: crypto.randomUUID(),
     chronicleId,
     authorId: currentUserId,
+    authorDisplayName: me?.name ?? "You",
+    authorHandle: me?.handle ?? "you",
+    authorAvatarUrl: me?.avatarUrl,
     text,
     createdAt: Date.now(),
   });

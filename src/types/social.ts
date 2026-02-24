@@ -38,6 +38,9 @@ export interface Reply {
   id: string;
   chronicleId: string;
   authorId: string;
+  authorDisplayName?: string;
+  authorHandle?: string;
+  authorAvatarUrl?: string;
   text: string;
   createdAt: number;
 }
