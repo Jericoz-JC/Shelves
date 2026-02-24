@@ -3,8 +3,15 @@ import { internalMutation, mutation, query, type MutationCtx } from "./_generate
 import type { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { requireAuthenticatedUserId } from "./lib/auth";
+import { clampFeedLimit, rankForYouChronicles } from "./lib/feedRanking";
 
 const LIST_DEFAULT_LIMIT = 20;
+const FEED_DEFAULT_LIMIT = 40;
+const FEED_MAX_LIMIT = 50;
+const FOR_YOU_POOL_MULTIPLIER = 3;
+const FOR_YOU_MAX_POOL_SIZE = 100;
+const FOLLOWING_POOL_MULTIPLIER = 6;
+const FOLLOWING_MAX_POOL_SIZE = 200;
 const REPLIES_DEFAULT_LIMIT = 50;
 const REPLIES_MAX_LIMIT = 100;
 const CASCADE_NODE_BATCH_SIZE = 20;
@@ -118,6 +125,105 @@ export const listReplies = query({
       .withIndex("by_parent_chronicle", (q) => q.eq("parentChronicleId", parentId))
       .order("asc")
       .take(Math.min(limit, REPLIES_MAX_LIMIT)),
+});
+
+export const listForYou = query({
+  args: {
+    limit: v.optional(v.number()),
+    nowBucketMs: v.number(),
+  },
+  handler: async (ctx, { limit, nowBucketMs }) => {
+    const safeLimit = clampFeedLimit(limit, FEED_DEFAULT_LIMIT, FEED_MAX_LIMIT);
+    const candidatePoolSize = Math.min(
+      FOR_YOU_MAX_POOL_SIZE,
+      Math.max(safeLimit, safeLimit * FOR_YOU_POOL_MULTIPLIER)
+    );
+
+    const candidates = await ctx.db
+      .query("chronicles")
+      .withIndex("by_parent_and_created", (q) => q.eq("parentChronicleId", undefined))
+      .order("desc")
+      .take(candidatePoolSize);
+
+    return rankForYouChronicles(candidates, safeLimit, nowBucketMs);
+  },
+});
+
+export const listFollowing = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { limit }) => {
+    const safeLimit = clampFeedLimit(limit, FEED_DEFAULT_LIMIT, FEED_MAX_LIMIT);
+    const followerId = await requireAuthenticatedUserId(ctx);
+
+    const follows = await ctx.db
+      .query("follows")
+      .withIndex("by_follower", (q) => q.eq("followerId", followerId))
+      .collect();
+    const allowedAuthors = new Set([followerId, ...follows.map((follow) => follow.followeeId)]);
+
+    const candidatePoolSize = Math.min(
+      FOLLOWING_MAX_POOL_SIZE,
+      Math.max(safeLimit, safeLimit * FOLLOWING_POOL_MULTIPLIER)
+    );
+
+    const candidates = await ctx.db
+      .query("chronicles")
+      .withIndex("by_parent_and_created", (q) => q.eq("parentChronicleId", undefined))
+      .order("desc")
+      .take(candidatePoolSize);
+
+    return candidates
+      .filter((chronicle) => allowedAuthors.has(chronicle.authorId))
+      .slice(0, safeLimit);
+  },
+});
+
+export const userReactionStates = query({
+  args: {
+    chronicleIds: v.array(v.id("chronicles")),
+  },
+  handler: async (ctx, { chronicleIds }) => {
+    const userId = await requireAuthenticatedUserId(ctx);
+    const uniqueChronicleIds = [...new Set(chronicleIds)];
+
+    const states = await Promise.all(
+      uniqueChronicleIds.map(async (chronicleId) => {
+        const [like, repost, bookmark] = await Promise.all([
+          ctx.db
+            .query("likes")
+            .withIndex("by_user_and_chronicle", (q) =>
+              q.eq("userId", userId).eq("chronicleId", chronicleId)
+            )
+            .unique(),
+          ctx.db
+            .query("reposts")
+            .withIndex("by_user_and_chronicle", (q) =>
+              q.eq("userId", userId).eq("chronicleId", chronicleId)
+            )
+            .unique(),
+          ctx.db
+            .query("bookmarks")
+            .withIndex("by_user_and_chronicle", (q) =>
+              q.eq("userId", userId).eq("chronicleId", chronicleId)
+            )
+            .unique(),
+        ]);
+
+        return [
+          chronicleId,
+          {
+            isLiked: like !== null,
+            isReposted: repost !== null,
+            isBookmarked: bookmark !== null,
+          },
+        ] as const;
+      })
+    );
+
+    return Object.fromEntries(states);
+  },
 });
 
 export const create = mutation({
