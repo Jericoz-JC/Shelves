@@ -16,14 +16,27 @@ import {
 } from "@/lib/social/feedTransforms";
 import { resolveCurrentUserId } from "@/lib/social/identity";
 
-export type FeedType = "forYou" | "following";
+export type FeedType =
+  | "forYou"
+  | "following"
+  | "author"
+  | "bookmarks"
+  | "likes"
+  | "reposts";
+
+interface UseConvexChroniclesOptions {
+  authorId?: string | null;
+}
 
 const FEED_LIMIT = 50;
 const RANKING_REFRESH_MS = 60_000;
 const EMPTY_CHRONICLES: ChronicleDocLike[] = [];
 const EMPTY_AUTHORS: AuthorRecord[] = [];
 
-export function useConvexChronicles(feedType: FeedType = "forYou"): ChroniclesHook {
+export function useConvexChronicles(
+  feedType: FeedType = "forYou",
+  options?: UseConvexChroniclesOptions
+): ChroniclesHook {
   const { userId } = useAuth();
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { openSignIn } = useClerk();
@@ -46,11 +59,41 @@ export function useConvexChronicles(feedType: FeedType = "forYou"): ChroniclesHo
   );
   const followingChronicles = useQuery(
     api.chronicles.listFollowing,
-    feedType === "following" ? { limit: FEED_LIMIT } : "skip"
+    feedType === "following" && isAuthenticated ? { limit: FEED_LIMIT } : "skip"
   );
-  const rawChroniclesResult = (feedType === "following"
-    ? followingChronicles
-    : forYouChronicles) as ChronicleDocLike[] | undefined;
+  const authorChronicles = useQuery(
+    api.chronicles.listByAuthor,
+    feedType === "author" && options?.authorId ? { authorId: options.authorId, limit: FEED_LIMIT } : "skip"
+  );
+  const bookmarkedChronicles = useQuery(
+    api.chronicles.listBookmarked,
+    feedType === "bookmarks" && isAuthenticated ? { limit: FEED_LIMIT } : "skip"
+  );
+  const likedChronicles = useQuery(
+    api.chronicles.listLiked,
+    feedType === "likes" && isAuthenticated ? { limit: FEED_LIMIT } : "skip"
+  );
+  const repostedChronicles = useQuery(
+    api.chronicles.listReposted,
+    feedType === "reposts" && isAuthenticated ? { limit: FEED_LIMIT } : "skip"
+  );
+
+  const rawChroniclesResult = useMemo(() => {
+    if (feedType === "following") return followingChronicles;
+    if (feedType === "author") return authorChronicles;
+    if (feedType === "bookmarks") return bookmarkedChronicles;
+    if (feedType === "likes") return likedChronicles;
+    if (feedType === "reposts") return repostedChronicles;
+    return forYouChronicles;
+  }, [
+    authorChronicles,
+    bookmarkedChronicles,
+    feedType,
+    followingChronicles,
+    forYouChronicles,
+    likedChronicles,
+    repostedChronicles,
+  ]) as ChronicleDocLike[] | undefined;
   const rawChronicles = rawChroniclesResult ?? EMPTY_CHRONICLES;
 
   const chronicleIds = useMemo(
@@ -60,7 +103,7 @@ export function useConvexChronicles(feedType: FeedType = "forYou"): ChroniclesHo
 
   const reactionStates = useQuery(
     api.chronicles.userReactionStates,
-    chronicleIds.length > 0 ? { chronicleIds } : "skip"
+    chronicleIds.length > 0 && isAuthenticated ? { chronicleIds } : "skip"
   ) as Record<string, ReactionState> | undefined;
 
   const authorIds = useMemo(

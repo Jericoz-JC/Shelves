@@ -46,9 +46,12 @@ export function rankForYouChronicles<T extends RankableChronicle>(
   limit: number,
   nowBucketMs: number
 ): T[] {
+  const baseScores = new Map<T, number>(
+    candidates.map((candidate) => [candidate, computeBaseChronicleScore(candidate, nowBucketMs)])
+  );
+
   const sortedByBase = [...candidates].sort((a, b) => {
-    const baseDiff =
-      computeBaseChronicleScore(b, nowBucketMs) - computeBaseChronicleScore(a, nowBucketMs);
+    const baseDiff = (baseScores.get(b) ?? 0) - (baseScores.get(a) ?? 0);
     if (baseDiff !== 0) return baseDiff;
     return compareChroniclesByTimeAndId(a, b);
   });
@@ -60,7 +63,7 @@ export function rankForYouChronicles<T extends RankableChronicle>(
     priorByAuthor.set(chronicle.authorId, priorPosts + 1);
     return {
       chronicle,
-      score: computeBaseChronicleScore(chronicle, nowBucketMs) * authorDiversity,
+      score: (baseScores.get(chronicle) ?? 0) * authorDiversity,
     };
   });
 

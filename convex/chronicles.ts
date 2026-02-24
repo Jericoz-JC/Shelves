@@ -12,8 +12,14 @@ const FOR_YOU_POOL_MULTIPLIER = 3;
 const FOR_YOU_MAX_POOL_SIZE = 100;
 const FOLLOWING_POOL_MULTIPLIER = 6;
 const FOLLOWING_MAX_POOL_SIZE = 200;
+const REACTION_FEED_POOL_MULTIPLIER = 6;
+const REACTION_FEED_MAX_POOL_SIZE = 300;
+const AUTHOR_POOL_MULTIPLIER = 3;
+const AUTHOR_MAX_POOL_SIZE = 200;
+const FOLLOWING_MAX_FOLLOWEES = 500;
 const REPLIES_DEFAULT_LIMIT = 50;
 const REPLIES_MAX_LIMIT = 100;
+const BATCH_MAX_IDS = 100;
 const CASCADE_NODE_BATCH_SIZE = 20;
 const CASCADE_CHILD_PAGE_SIZE = 20;
 const CASCADE_REACTION_PAGE_SIZE = 50;
@@ -133,6 +139,11 @@ export const listRepliesBatch = query({
     limitPerParent: v.optional(v.number()),
   },
   handler: async (ctx, { parentIds, limitPerParent = REPLIES_DEFAULT_LIMIT }) => {
+    if (parentIds.length === 0) return {};
+    if (parentIds.length > BATCH_MAX_IDS) {
+      throw new Error(`Too many parentIds requested. Max is ${BATCH_MAX_IDS}.`);
+    }
+
     const safeLimit = Math.min(limitPerParent, REPLIES_MAX_LIMIT);
     const uniqueParentIds = [...new Set(parentIds)];
 
@@ -173,6 +184,30 @@ export const listForYou = query({
   },
 });
 
+export const listByAuthor = query({
+  args: {
+    authorId: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { authorId, limit }) => {
+    const safeLimit = clampFeedLimit(limit, FEED_DEFAULT_LIMIT, FEED_MAX_LIMIT);
+    const candidatePoolSize = Math.min(
+      AUTHOR_MAX_POOL_SIZE,
+      Math.max(safeLimit, safeLimit * AUTHOR_POOL_MULTIPLIER)
+    );
+
+    const candidates = await ctx.db
+      .query("chronicles")
+      .withIndex("by_author", (q) => q.eq("authorId", authorId))
+      .order("desc")
+      .take(candidatePoolSize);
+
+    return candidates
+      .filter((chronicle) => chronicle.parentChronicleId === undefined)
+      .slice(0, safeLimit);
+  },
+});
+
 export const listFollowing = query({
   args: {
     limit: v.optional(v.number()),
@@ -184,7 +219,8 @@ export const listFollowing = query({
     const follows = await ctx.db
       .query("follows")
       .withIndex("by_follower", (q) => q.eq("followerId", followerId))
-      .collect();
+      .order("desc")
+      .take(FOLLOWING_MAX_FOLLOWEES);
     const allowedAuthors = new Set([followerId, ...follows.map((follow) => follow.followeeId)]);
 
     const candidatePoolSize = Math.min(
@@ -204,11 +240,124 @@ export const listFollowing = query({
   },
 });
 
+export const listBookmarked = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { limit }) => {
+    const safeLimit = clampFeedLimit(limit, FEED_DEFAULT_LIMIT, FEED_MAX_LIMIT);
+    const userId = await requireAuthenticatedUserId(ctx);
+    const candidatePoolSize = Math.min(
+      REACTION_FEED_MAX_POOL_SIZE,
+      Math.max(safeLimit, safeLimit * REACTION_FEED_POOL_MULTIPLIER)
+    );
+
+    const bookmarks = await ctx.db
+      .query("bookmarks")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .take(candidatePoolSize);
+
+    const dedupe = new Set<string>();
+    const chronicleIds = bookmarks
+      .map((bookmark) => bookmark.chronicleId)
+      .filter((chronicleId) => {
+        if (dedupe.has(chronicleId)) return false;
+        dedupe.add(chronicleId);
+        return true;
+      });
+
+    const chronicles = await Promise.all(chronicleIds.map((chronicleId) => ctx.db.get(chronicleId)));
+    return chronicles
+      .filter((chronicle): chronicle is NonNullable<typeof chronicle> =>
+        Boolean(chronicle && chronicle.parentChronicleId === undefined)
+      )
+      .slice(0, safeLimit);
+  },
+});
+
+export const listLiked = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { limit }) => {
+    const safeLimit = clampFeedLimit(limit, FEED_DEFAULT_LIMIT, FEED_MAX_LIMIT);
+    const userId = await requireAuthenticatedUserId(ctx);
+    const candidatePoolSize = Math.min(
+      REACTION_FEED_MAX_POOL_SIZE,
+      Math.max(safeLimit, safeLimit * REACTION_FEED_POOL_MULTIPLIER)
+    );
+
+    const likes = await ctx.db
+      .query("likes")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .take(candidatePoolSize);
+
+    const dedupe = new Set<string>();
+    const chronicleIds = likes
+      .map((like) => like.chronicleId)
+      .filter((chronicleId) => {
+        if (dedupe.has(chronicleId)) return false;
+        dedupe.add(chronicleId);
+        return true;
+      });
+
+    const chronicles = await Promise.all(chronicleIds.map((chronicleId) => ctx.db.get(chronicleId)));
+    return chronicles
+      .filter((chronicle): chronicle is NonNullable<typeof chronicle> =>
+        Boolean(chronicle && chronicle.parentChronicleId === undefined)
+      )
+      .slice(0, safeLimit);
+  },
+});
+
+export const listReposted = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { limit }) => {
+    const safeLimit = clampFeedLimit(limit, FEED_DEFAULT_LIMIT, FEED_MAX_LIMIT);
+    const userId = await requireAuthenticatedUserId(ctx);
+    const candidatePoolSize = Math.min(
+      REACTION_FEED_MAX_POOL_SIZE,
+      Math.max(safeLimit, safeLimit * REACTION_FEED_POOL_MULTIPLIER)
+    );
+
+    const reposts = await ctx.db
+      .query("reposts")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .take(candidatePoolSize);
+
+    const dedupe = new Set<string>();
+    const chronicleIds = reposts
+      .map((repost) => repost.chronicleId)
+      .filter((chronicleId) => {
+        if (dedupe.has(chronicleId)) return false;
+        dedupe.add(chronicleId);
+        return true;
+      });
+
+    const chronicles = await Promise.all(chronicleIds.map((chronicleId) => ctx.db.get(chronicleId)));
+    return chronicles
+      .filter((chronicle): chronicle is NonNullable<typeof chronicle> =>
+        Boolean(chronicle && chronicle.parentChronicleId === undefined)
+      )
+      .slice(0, safeLimit);
+  },
+});
+
 export const userReactionStates = query({
   args: {
     chronicleIds: v.array(v.id("chronicles")),
   },
   handler: async (ctx, { chronicleIds }) => {
+    if (chronicleIds.length === 0) return {};
+    if (chronicleIds.length > BATCH_MAX_IDS) {
+      throw new Error(`Too many chronicleIds requested. Max is ${BATCH_MAX_IDS}.`);
+    }
+
     const userId = await requireAuthenticatedUserId(ctx);
     const uniqueChronicleIds = [...new Set(chronicleIds)];
 

@@ -6,9 +6,10 @@ import {
   buildUserSearchText,
   deriveHandleSeed,
   isValidHandle,
-  normalizeHandleInput,
   sanitizeHandleCandidate,
 } from "./lib/userHandles";
+
+const USERS_BATCH_MAX_IDS = 100;
 
 type IdentityShape = {
   subject: string;
@@ -62,7 +63,7 @@ export const createOrGet = mutation({
 
     if (existing) {
       const hasHandle = typeof existing.handle === "string" && existing.handle.length > 0;
-      const handle = hasHandle
+      const nextHandle = hasHandle
         ? existing.handle
         : await reserveUniqueHandle(
             ctx,
@@ -70,17 +71,30 @@ export const createOrGet = mutation({
             clerkId
           );
 
-      await ctx.db.patch(existing._id, {
-        email: existing.email || email,
-        name: existing.name ?? name,
-        avatarUrl: existing.avatarUrl ?? avatarUrl,
-        handle,
-        searchText: buildUserSearchText({
-          name: existing.name ?? name,
-          handle,
-          email: existing.email || email,
-        }),
+      const nextEmail = existing.email || email;
+      const nextName = existing.name ?? name;
+      const nextAvatarUrl = existing.avatarUrl ?? avatarUrl;
+      const nextSearchText = buildUserSearchText({
+        name: nextName,
+        handle: nextHandle,
       });
+
+      const shouldPatch =
+        existing.email !== nextEmail ||
+        existing.name !== nextName ||
+        existing.avatarUrl !== nextAvatarUrl ||
+        existing.handle !== nextHandle ||
+        existing.searchText !== nextSearchText;
+
+      if (shouldPatch) {
+        await ctx.db.patch(existing._id, {
+          email: nextEmail,
+          name: nextName,
+          avatarUrl: nextAvatarUrl,
+          handle: nextHandle,
+          searchText: nextSearchText,
+        });
+      }
 
       return existing._id;
     }
@@ -97,7 +111,7 @@ export const createOrGet = mutation({
       name,
       avatarUrl,
       handle,
-      searchText: buildUserSearchText({ name, handle, email }),
+      searchText: buildUserSearchText({ name, handle }),
     });
   },
 });
@@ -130,6 +144,9 @@ export const getBatch = query({
   },
   handler: async (ctx, { clerkIds }) => {
     const uniqueClerkIds = [...new Set(clerkIds)];
+    if (uniqueClerkIds.length > USERS_BATCH_MAX_IDS) {
+      throw new Error(`Too many clerkIds requested. Max is ${USERS_BATCH_MAX_IDS}.`);
+    }
     const users = await Promise.all(
       uniqueClerkIds.map((clerkId) =>
         ctx.db
@@ -176,7 +193,7 @@ export const updateProfile = mutation({
       throw new Error("User profile not found. Call createOrGet before updating profile.");
     }
 
-    const normalizedHandle = sanitizeHandleCandidate(normalizeHandleInput(args.handle));
+    const normalizedHandle = sanitizeHandleCandidate(args.handle);
     if (!isValidHandle(normalizedHandle)) {
       throw new Error("Invalid handle format");
     }
@@ -192,16 +209,26 @@ export const updateProfile = mutation({
 
     const name = args.name.trim() || me.name || "Reader";
     const bio = args.bio?.trim();
-    await ctx.db.patch(me._id, {
+    const nextBio = bio && bio.length > 0 ? bio : undefined;
+    const nextSearchText = buildUserSearchText({
       name,
       handle: normalizedHandle,
-      bio: bio && bio.length > 0 ? bio : undefined,
-      searchText: buildUserSearchText({
+    });
+
+    const shouldPatch =
+      me.name !== name ||
+      me.handle !== normalizedHandle ||
+      me.bio !== nextBio ||
+      me.searchText !== nextSearchText;
+
+    if (shouldPatch) {
+      await ctx.db.patch(me._id, {
         name,
         handle: normalizedHandle,
-        email: me.email,
-      }),
-    });
+        bio: nextBio,
+        searchText: nextSearchText,
+      });
+    }
 
     return me._id;
   },

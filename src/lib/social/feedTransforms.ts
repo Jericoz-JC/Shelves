@@ -44,13 +44,18 @@ export function enrichFeedChronicle(params: {
 }
 
 export function mapReplyDocs(replies: ReplyDocLike[]): Reply[] {
-  return replies.map((reply) => ({
-    id: reply._id,
-    chronicleId: reply.parentChronicleId ?? "",
-    authorId: reply.authorId,
-    text: reply.text,
-    createdAt: reply.createdAt,
-  }));
+  return replies
+    .filter(
+      (reply): reply is ReplyDocLike & { parentChronicleId: string } =>
+        typeof reply.parentChronicleId === "string" && reply.parentChronicleId.trim().length > 0
+    )
+    .map((reply) => ({
+      id: reply._id,
+      chronicleId: reply.parentChronicleId,
+      authorId: reply.authorId,
+      text: reply.text,
+      createdAt: reply.createdAt,
+    }));
 }
 
 export function mergeReplyMaps(

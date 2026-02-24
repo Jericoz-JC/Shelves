@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
@@ -58,20 +58,53 @@ describe("FeedRightRail", () => {
   });
 
   it("allows users to type in the search input", () => {
-    renderRail(
-      <FeedRightRail
-        trending={trendingBooks}
-        clubs={readingClubs}
-        suggested={suggestedReaders}
-      />
-    );
+    vi.useFakeTimers();
+    try {
+      renderRail(
+        <FeedRightRail
+          trending={trendingBooks}
+          clubs={readingClubs}
+          suggested={suggestedReaders}
+        />
+      );
 
-    const searchInput = screen.getByPlaceholderText(
-      "Search reader handles"
-    );
-    fireEvent.change(searchInput, { target: { value: "pachinko" } });
+      const searchInput = screen.getByPlaceholderText(
+        "Search reader handles"
+      );
+      fireEvent.change(searchInput, { target: { value: "pachinko" } });
+      act(() => {
+        vi.advanceTimersByTime(350);
+      });
 
-    expect(searchInput).toHaveValue("pachinko");
-    expect(screen.queryByText("Search results are coming soon.")).not.toBeInTheDocument();
+      expect(searchInput).toHaveValue("pachinko");
+      expect(screen.getByText('No readers found for "pachinko".')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("closes search results on outside click", () => {
+    vi.useFakeTimers();
+    try {
+      renderRail(
+        <FeedRightRail
+          trending={trendingBooks}
+          clubs={readingClubs}
+          suggested={suggestedReaders}
+        />
+      );
+
+      const searchInput = screen.getByPlaceholderText("Search reader handles");
+      fireEvent.change(searchInput, { target: { value: "pachinko" } });
+      act(() => {
+        vi.advanceTimersByTime(350);
+      });
+
+      expect(screen.getByText('No readers found for "pachinko".')).toBeInTheDocument();
+      fireEvent.mouseDown(document.body);
+      expect(screen.queryByText('No readers found for "pachinko".')).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

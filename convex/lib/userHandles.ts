@@ -52,9 +52,8 @@ export function buildHandleCandidates(seed: string, maxVariants = 25): string[] 
 export function buildUserSearchText(params: {
   name?: string;
   handle?: string;
-  email?: string;
 }): string {
-  const parts = [params.name, params.handle, params.email]
+  const parts = [params.name, params.handle]
     .filter((part): part is string => Boolean(part && part.trim()))
     .map((part) => part.trim().toLowerCase());
   return parts.join(" ");

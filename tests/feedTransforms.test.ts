@@ -52,6 +52,12 @@ describe("feed transforms", () => {
         text: "reply",
         createdAt: 42,
       },
+      {
+        _id: "orphan",
+        authorId: "user_3",
+        text: "missing parent",
+        createdAt: 43,
+      },
     ];
     expect(mapReplyDocs(replyDocs)).toEqual([
       {

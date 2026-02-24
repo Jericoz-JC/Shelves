@@ -5,7 +5,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { FeedTab, FeedView, SocialUser, UserProfile } from "@/types/social";
 import { mockUserBooks } from "@/data/mockReplies";
-import { useConvexChronicles as useChronicles } from "@/hooks/useConvexChronicles";
+import { useConvexChronicles as useChronicles, type FeedType } from "@/hooks/useConvexChronicles";
 import { useConvexFollows } from "@/hooks/useConvexFollows";
 import { useConvexUsers } from "@/hooks/useConvexUsers";
 import {
@@ -87,6 +87,17 @@ export default function Feed() {
   const isProfileRoute = location.pathname.startsWith("/feed/profile/");
   const feedView = getFeedView(location.pathname);
   const activeTab: FeedTab = feedView === "following" ? "following" : "forYou";
+  const chroniclesFeedType: FeedType = isProfileRoute
+    ? "author"
+    : feedView === "following"
+      ? "following"
+      : feedView === "bookmarks"
+        ? "bookmarks"
+        : feedView === "likes"
+          ? "likes"
+          : feedView === "reposts"
+            ? "reposts"
+            : "forYou";
 
   const {
     chronicles: posts,
@@ -97,7 +108,9 @@ export default function Feed() {
     bookmarkChronicle,
     deleteChronicle,
     addReply,
-  } = useChronicles(activeTab);
+  } = useChronicles(chroniclesFeedType, {
+    authorId: routeProfileUserId ?? null,
+  });
 
   const [profileUserId, setProfileUserId] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -161,24 +174,11 @@ export default function Feed() {
   const filteredPosts = useMemo(() => {
     if (isProfileRoute) {
       if (!routeProfileUserId) return [];
-      return posts.filter((post) => post.authorId === routeProfileUserId);
-    }
-
-    if (feedView === "following") {
       return posts;
-    }
-    if (feedView === "bookmarks") {
-      return posts.filter((post) => post.isBookmarked);
-    }
-    if (feedView === "likes") {
-      return posts.filter((post) => post.isLiked);
-    }
-    if (feedView === "reposts") {
-      return posts.filter((post) => post.isReposted);
     }
 
     return posts;
-  }, [feedView, isProfileRoute, posts, routeProfileUserId]);
+  }, [isProfileRoute, posts, routeProfileUserId]);
 
   const emptyMessage = useMemo(() => {
     if (isProfileRoute) {

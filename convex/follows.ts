@@ -3,6 +3,9 @@ import { mutation, query } from "./_generated/server";
 import { requireAuthenticatedUserId } from "./lib/auth";
 import { dedupeFolloweeIds, isSelfFollow } from "./lib/follows";
 
+const LIST_FOLLOWING_DEFAULT_LIMIT = 200;
+const LIST_FOLLOWING_MAX_LIMIT = 500;
+
 export const follow = mutation({
   args: {
     followeeId: v.string(),
@@ -11,6 +14,14 @@ export const follow = mutation({
     const followerId = await requireAuthenticatedUserId(ctx);
     if (isSelfFollow(followerId, followeeId)) {
       throw new Error("Cannot follow yourself");
+    }
+
+    const followee = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", followeeId))
+      .unique();
+    if (!followee) {
+      throw new Error("Followee not found");
     }
 
     const existing = await ctx.db
@@ -51,13 +62,20 @@ export const unfollow = mutation({
 });
 
 export const listFollowing = query({
-  args: {},
-  handler: async (ctx) => {
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { limit }) => {
     const followerId = await requireAuthenticatedUserId(ctx);
+    const safeLimit = Math.max(
+      1,
+      Math.min(limit ?? LIST_FOLLOWING_DEFAULT_LIMIT, LIST_FOLLOWING_MAX_LIMIT)
+    );
     const rows = await ctx.db
       .query("follows")
       .withIndex("by_follower", (q) => q.eq("followerId", followerId))
-      .collect();
+      .order("desc")
+      .take(safeLimit);
 
     return dedupeFolloweeIds(rows.map((row) => row.followeeId));
   },

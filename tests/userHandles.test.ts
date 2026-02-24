@@ -42,8 +42,7 @@ describe("user handle helpers", () => {
     const searchText = buildUserSearchText({
       name: "Elena Marquez",
       handle: "elena_reads",
-      email: "Elena@example.com",
     });
-    expect(searchText).toBe("elena marquez elena_reads elena@example.com");
+    expect(searchText).toBe("elena marquez elena_reads");
   });
 });

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import type { AriaAttributes } from "react";
 
@@ -26,6 +27,12 @@ export function UserAvatar({
   "aria-label": ariaLabel,
   ...ariaProps
 }: UserAvatarProps) {
+  const [showImage, setShowImage] = useState(Boolean(avatarUrl));
+
+  useEffect(() => {
+    setShowImage(Boolean(avatarUrl));
+  }, [avatarUrl]);
+
   const avatarClasses = cn(
     "shrink-0 rounded-full bg-accent/20 text-accent font-semibold flex items-center justify-center ring-1 ring-border/50",
     size === "sm" && "w-8 h-8 text-xs",
@@ -44,10 +51,11 @@ export function UserAvatar({
         {...ariaProps}
         className={avatarClasses}
       >
-        {avatarUrl ? (
+        {avatarUrl && showImage ? (
           <img
             src={avatarUrl}
             alt=""
+            onError={() => setShowImage(false)}
             className="h-full w-full rounded-full object-cover"
           />
         ) : (
@@ -62,10 +70,11 @@ export function UserAvatar({
       {...ariaProps}
       className={avatarClasses}
     >
-      {avatarUrl ? (
+      {avatarUrl && showImage ? (
         <img
           src={avatarUrl}
           alt=""
+          onError={() => setShowImage(false)}
           className="h-full w-full rounded-full object-cover"
         />
       ) : (
