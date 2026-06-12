@@ -74,12 +74,14 @@ export function BookUpload({ onUploadComplete }: BookUploadProps) {
         {uploading ? (
           <>
             <Upload className="h-4 w-4 animate-pulse" />
-            Importing...
+            <span className="sm:hidden">Importing</span>
+            <span className="hidden sm:inline">Importing...</span>
           </>
         ) : (
           <>
             <Plus className="h-4 w-4" />
-            Add Book
+            <span className="sm:hidden">Add</span>
+            <span className="hidden sm:inline">Add Book</span>
           </>
         )}
       </Button>

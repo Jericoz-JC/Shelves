@@ -15,14 +15,14 @@ export default function Library() {
     <PageTransition className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border/50">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="font-display text-2xl font-semibold tracking-tight">
+        <div className="max-w-5xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex items-center justify-between gap-2">
+          <h1 className="font-display text-xl sm:text-2xl font-semibold tracking-tight shrink-0">
             Shelves
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <SignedOut>
               <SignInButton mode="modal">
-                <Button variant="secondary" size="default">
+                <Button variant="secondary" size="default" className="px-3 sm:px-4">
                   Log-In
                 </Button>
               </SignInButton>
@@ -31,9 +31,9 @@ export default function Library() {
               <UserButton />
             </SignedIn>
             <Button asChild variant="secondary" size="default">
-              <Link to="/feed">
-                <ScrollText className="mr-2 h-4 w-4" />
-                <span>Chronicles</span>
+              <Link to="/feed" aria-label="Chronicles">
+                <ScrollText className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Chronicles</span>
               </Link>
             </Button>
             <BookUpload onUploadComplete={refresh} />
