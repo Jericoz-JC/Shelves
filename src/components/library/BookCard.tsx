@@ -53,6 +53,15 @@ export function BookCard({ book, index, onDelete }: BookCardProps) {
     clearLongPressTimer();
   };
 
+  const handleContextMenu = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    clearLongPressTimer();
+    // Touch long-press also fires contextmenu; suppress the trailing click
+    // so it can't navigate while the dialog is open.
+    longPressTriggeredRef.current = true;
+    setDeleteOpen(true);
+  };
+
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     if (longPressTriggeredRef.current) {
       event.preventDefault();
@@ -71,6 +80,7 @@ export function BookCard({ book, index, onDelete }: BookCardProps) {
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerLeave}
         onPointerCancel={handlePointerCancel}
+        onContextMenu={handleContextMenu}
         className="group text-left w-full"
         style={{ animationDelay: `${index * 60}ms` }}
       >
