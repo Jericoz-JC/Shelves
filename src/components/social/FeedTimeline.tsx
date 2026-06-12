@@ -1,5 +1,6 @@
 import type { Chronicle, Reply } from "@/types/social";
 import { ChronicleCard } from "./ChronicleCard";
+import type { ReportReason } from "./ReportDialog";
 
 interface FeedTimelineProps {
   chronicles: Chronicle[];
@@ -12,6 +13,7 @@ interface FeedTimelineProps {
   onAvatarClick: (userId: string) => void;
   onBookmark: (id: string) => void;
   onDelete: (id: string) => void;
+  onReport?: (id: string, reason: ReportReason) => void;
   onRepliesToggle?: (chronicleId: string, expanded: boolean) => void;
   hasMore?: boolean;
   loadingMore?: boolean;
@@ -29,6 +31,7 @@ export function FeedTimeline({
   onAvatarClick,
   onBookmark,
   onDelete,
+  onReport,
   onRepliesToggle,
   hasMore,
   loadingMore,
@@ -58,6 +61,7 @@ export function FeedTimeline({
           onAvatarClick={onAvatarClick}
           onBookmark={onBookmark}
           onDelete={onDelete}
+          onReport={onReport}
           onRepliesToggle={onRepliesToggle}
         />
       ))}

@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { requireAuthenticatedUserId } from "./lib/auth";
+import { assertCleanContent } from "./lib/moderation";
 import {
   buildHandleCandidates,
   buildUserSearchText,
@@ -192,6 +193,10 @@ export const updateProfile = mutation({
     if (!me) {
       throw new Error("User profile not found. Call createOrGet before updating profile.");
     }
+
+    assertCleanContent("name", args.name);
+    assertCleanContent("handle", args.handle);
+    assertCleanContent("bio", args.bio);
 
     const normalizedHandle = sanitizeHandleCandidate(args.handle);
     if (!isValidHandle(normalizedHandle)) {

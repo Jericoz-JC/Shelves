@@ -25,6 +25,9 @@ import { SocialComposeButton } from "@/components/social/SocialComposeButton";
 import { SocialLayout } from "@/components/social/SocialLayout";
 import { UserAvatar } from "@/components/social/UserAvatar";
 import { FollowToggleButton } from "@/components/social/FollowToggleButton";
+import { ReportDialog } from "@/components/social/ReportDialog";
+import { useReports } from "@/hooks/useReports";
+import { Flag } from "lucide-react";
 import { PageTransition } from "@/components/layout/PageTransition";
 import { resolveCurrentUserId } from "@/lib/social/identity";
 import {
@@ -120,6 +123,8 @@ export default function Feed() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [composeOpen, setComposeOpen] = useState(false);
   const [discoveryLoading, setDiscoveryLoading] = useState(true);
+  const [reportProfileOpen, setReportProfileOpen] = useState(false);
+  const { reportChronicle, reportUser } = useReports();
 
   const { books: libraryBooks } = useLibrary();
   const {
@@ -321,13 +326,33 @@ export default function Feed() {
                 </div>
               </div>
               {!isProfileCurrentUser && routeProfileUserId && (
-                <FollowToggleButton
-                  isFollowing={followedIds.has(routeProfileUserId)}
-                  onToggle={() => toggleFollow(routeProfileUserId)}
-                />
+                <div className="flex items-center gap-2">
+                  <FollowToggleButton
+                    isFollowing={followedIds.has(routeProfileUserId)}
+                    onToggle={() => toggleFollow(routeProfileUserId)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setReportProfileOpen(true)}
+                    aria-label="Report profile"
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-colors"
+                  >
+                    <Flag className="h-4 w-4" />
+                  </button>
+                </div>
               )}
             </div>
           </section>
+        )}
+
+        {routeProfileUserId && (
+          <ReportDialog
+            open={reportProfileOpen}
+            onOpenChange={setReportProfileOpen}
+            title="Report profile?"
+            description="Tell us what's wrong with this account. Reports are reviewed by the Shelves team."
+            onSubmit={(reason) => reportUser(routeProfileUserId, reason)}
+          />
         )}
 
         {showInlineComposer && (
@@ -350,6 +375,7 @@ export default function Feed() {
           onAvatarClick={handleAvatarClick}
           onBookmark={bookmarkChronicle}
           onDelete={deleteChronicle}
+          onReport={reportChronicle}
           onRepliesToggle={setRepliesExpanded}
           hasMore={canLoadMore}
           loadingMore={isLoadingMore}
