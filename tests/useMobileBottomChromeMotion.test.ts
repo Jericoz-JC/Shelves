@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { clamp } from "@/lib/utils/math";
 import {
   clampToEndpoint,
-  clamp,
   computeAdaptiveLerpFactor,
   computeTrackedOffset,
   computeViewportBottomAnchor,

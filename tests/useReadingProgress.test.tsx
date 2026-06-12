@@ -4,6 +4,12 @@ import { useReadingProgress } from "../src/hooks/useReadingProgress";
 import { IndexedDBService } from "../src/lib/db/indexedDB";
 import { FakeRendition } from "./tooling/fakeRendition";
 
+vi.mock("convex/react", () => {
+  // Real useMutation returns a referentially stable function across renders.
+  const stableMutation = vi.fn(() => Promise.resolve());
+  return { useMutation: vi.fn(() => stableMutation) };
+});
+
 vi.mock("@/lib/db/indexedDB", () => ({
   IndexedDBService: {
     getProgress: vi.fn(),
