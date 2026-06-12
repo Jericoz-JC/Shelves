@@ -18,6 +18,7 @@ import {
   SAME_TS_BUFFER,
   type FeedCursor,
 } from "./lib/feedPagination";
+import { assertChronicleContent } from "./lib/contentLimits";
 
 const LIST_DEFAULT_LIMIT = 20;
 const FEED_DEFAULT_LIMIT = 40;
@@ -710,6 +711,7 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await requireAuthenticatedUserId(ctx);
+    assertChronicleContent(args);
     return ctx.db.insert("chronicles", {
       authorId: userId,
       text: args.text,
@@ -799,9 +801,14 @@ export const bookmark = mutation({
 
     if (existing) {
       await ctx.db.delete(existing._id);
-    } else {
-      await ctx.db.insert("bookmarks", { userId, chronicleId, createdAt: Date.now() });
+      return;
     }
+
+    // Match like/repost: never bookmark a deleted or nonexistent chronicle.
+    const chronicle = await ctx.db.get(chronicleId);
+    if (!chronicle) return;
+
+    await ctx.db.insert("bookmarks", { userId, chronicleId, createdAt: Date.now() });
   },
 });
 
@@ -847,6 +854,7 @@ export const addReply = mutation({
   },
   handler: async (ctx, { parentChronicleId, text }) => {
     const userId = await requireAuthenticatedUserId(ctx);
+    assertChronicleContent({ text });
 
     // Validate parent exists before inserting to avoid orphaned replies.
     const parent = await ctx.db.get(parentChronicleId);
