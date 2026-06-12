@@ -66,6 +66,7 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_author", ["authorId"])
+    .index("by_author_and_created", ["authorId", "createdAt"])
     .index("by_created", ["createdAt"])
     .index("by_parent_chronicle", ["parentChronicleId"])
     .index("by_parent_and_created", ["parentChronicleId", "createdAt"]),

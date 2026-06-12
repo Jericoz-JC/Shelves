@@ -31,6 +31,8 @@ interface ChronicleCardProps {
   onAvatarClick: (userId: string) => void;
   onBookmark: (id: string) => void;
   onDelete?: (id: string) => void;
+  /** Lets the feed lazily fetch reply threads only for expanded cards. */
+  onRepliesToggle?: (chronicleId: string, expanded: boolean) => void;
 }
 
 export function ChronicleCard({
@@ -43,6 +45,7 @@ export function ChronicleCard({
   onAvatarClick,
   onBookmark,
   onDelete,
+  onRepliesToggle,
 }: ChronicleCardProps) {
   const [showReplies, setShowReplies] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -131,7 +134,11 @@ export function ChronicleCard({
             isBookmarked={chronicle.isBookmarked}
             onLike={() => onLike(chronicle.id)}
             onRepost={() => onRepost(chronicle.id)}
-            onReplyToggle={() => setShowReplies((s) => !s)}
+            onReplyToggle={() => {
+              const next = !showReplies;
+              setShowReplies(next);
+              onRepliesToggle?.(chronicle.id, next);
+            }}
             onBookmark={() => onBookmark(chronicle.id)}
           />
         </div>

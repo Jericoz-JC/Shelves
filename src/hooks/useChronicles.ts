@@ -33,6 +33,11 @@ export interface ChroniclesHook {
   bookmarkChronicle: (id: string) => void;
   deleteChronicle: (id: string) => void;
   addReply: (chronicleId: string, text: string) => Reply;
+  // Cursor pagination + lazy reply hydration (Convex-backed feeds only).
+  loadMore?: (numItems: number) => void;
+  canLoadMore?: boolean;
+  isLoadingMore?: boolean;
+  setRepliesExpanded?: (chronicleId: string, expanded: boolean) => void;
 }
 
 function loadChronicles(): Chronicle[] {
