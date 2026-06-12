@@ -98,6 +98,17 @@ export function ChronicleCard({
               </div>
             )}
           </div>
+          {chronicle.spoilerRedacted && (
+            <div className="mt-2 rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 px-3 py-2.5">
+              <p className="text-[13px] text-muted-foreground">
+                <span className="font-semibold uppercase tracking-wider text-[10px] text-amber-500/80 mr-2">
+                  Spoiler
+                </span>
+                Hidden until you reach this point
+                {chronicle.bookTitle ? ` in ${chronicle.bookTitle}` : ""}.
+              </p>
+            </div>
+          )}
           {chronicle.text && (
             <p className="text-[15px] leading-relaxed mt-1">{chronicle.text}</p>
           )}

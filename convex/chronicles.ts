@@ -19,6 +19,7 @@ import {
   type FeedCursor,
 } from "./lib/feedPagination";
 import { assertChronicleContent } from "./lib/contentLimits";
+import { isSpoilerGated, redactSpoilerContent, shouldRevealSpoiler } from "./lib/spoilers";
 
 const LIST_DEFAULT_LIMIT = 20;
 const FEED_DEFAULT_LIMIT = 40;
@@ -426,7 +427,8 @@ interface ViewerReactionState {
   isBookmarked: boolean;
 }
 
-interface FeedPageItem extends Doc<"chronicles"> {
+interface FeedPageItem extends Omit<Doc<"chronicles">, "highlightText"> {
+  highlightText?: string;
   author: {
     clerkId: string;
     name?: string;
@@ -434,6 +436,8 @@ interface FeedPageItem extends Doc<"chronicles"> {
     avatarUrl?: string;
   } | null;
   viewer: ViewerReactionState | null;
+  /** True when spoiler content was stripped server-side for this viewer. */
+  spoilerRedacted?: boolean;
 }
 
 /**
@@ -462,6 +466,29 @@ async function hydrateFeedPage(
 
   const identity = await ctx.auth.getUserIdentity();
   const viewerId = identity?.subject ?? null;
+
+  // Spoiler gating: one progress lookup per distinct gated book, viewer-side.
+  const gatedBookRefs = [
+    ...new Set(
+      chronicles
+        .filter((chronicle) => isSpoilerGated(chronicle))
+        .map((chronicle) => chronicle.bookRef!)
+    ),
+  ];
+  const viewerProgressByBook = new Map<string, number>();
+  if (viewerId && gatedBookRefs.length > 0) {
+    await Promise.all(
+      gatedBookRefs.map(async (bookHash) => {
+        const progress = await ctx.db
+          .query("readingProgress")
+          .withIndex("by_user_and_book", (q) =>
+            q.eq("userId", viewerId).eq("bookHash", bookHash)
+          )
+          .unique();
+        if (progress) viewerProgressByBook.set(bookHash, progress.percentage);
+      })
+    );
+  }
 
   const viewerStates = viewerId
     ? await Promise.all(
@@ -497,8 +524,16 @@ async function hydrateFeedPage(
 
   return chronicles.map((chronicle, index) => {
     const author = authorByClerkId.get(chronicle.authorId);
+    const reveal = shouldRevealSpoiler(
+      chronicle,
+      viewerId,
+      chronicle.bookRef != null
+        ? viewerProgressByBook.get(chronicle.bookRef) ?? null
+        : null
+    );
+    const content = reveal ? chronicle : redactSpoilerContent(chronicle);
     return {
-      ...chronicle,
+      ...content,
       author: author
         ? {
             clerkId: author.clerkId,
@@ -712,6 +747,20 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthenticatedUserId(ctx);
     assertChronicleContent(args);
+
+    // Capture the author's position at post time so the feed can gate
+    // spoiler content on it (lib/spoilers.ts).
+    let spoilerProgress: number | undefined;
+    if (args.spoilerTag && args.bookRef) {
+      const authorProgress = await ctx.db
+        .query("readingProgress")
+        .withIndex("by_user_and_book", (q) =>
+          q.eq("userId", userId).eq("bookHash", args.bookRef!)
+        )
+        .unique();
+      spoilerProgress = authorProgress?.percentage ?? 0;
+    }
+
     return ctx.db.insert("chronicles", {
       authorId: userId,
       text: args.text,
@@ -719,6 +768,7 @@ export const create = mutation({
       bookTitle: args.bookTitle,
       bookRef: args.bookRef,
       spoilerTag: args.spoilerTag,
+      spoilerProgress,
       likeCount: 0,
       replyCount: 0,
       repostCount: 0,

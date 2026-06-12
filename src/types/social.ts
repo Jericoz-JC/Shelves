@@ -24,6 +24,8 @@ export interface Chronicle {
   bookTitle?: string;
   bookHash?: string;
   spoilerTag?: boolean;
+  /** Content was stripped server-side; show a locked-spoiler placeholder. */
+  spoilerRedacted?: boolean;
 }
 
 export type FeedTab = "forYou" | "following";
