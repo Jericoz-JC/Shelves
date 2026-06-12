@@ -19,6 +19,7 @@ import {
   type FeedCursor,
 } from "./lib/feedPagination";
 import { assertChronicleContent } from "./lib/contentLimits";
+import { assertCleanContent } from "./lib/moderation";
 import { isSpoilerGated, redactSpoilerContent, shouldRevealSpoiler } from "./lib/spoilers";
 
 const LIST_DEFAULT_LIMIT = 20;
@@ -747,6 +748,8 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const userId = await requireAuthenticatedUserId(ctx);
     assertChronicleContent(args);
+    // User-authored text only — highlightText is quoted book prose.
+    assertCleanContent("text", args.text);
 
     // Capture the author's position at post time so the feed can gate
     // spoiler content on it (lib/spoilers.ts).
@@ -905,6 +908,7 @@ export const addReply = mutation({
   handler: async (ctx, { parentChronicleId, text }) => {
     const userId = await requireAuthenticatedUserId(ctx);
     assertChronicleContent({ text });
+    assertCleanContent("text", text);
 
     // Validate parent exists before inserting to avoid orphaned replies.
     const parent = await ctx.db.get(parentChronicleId);

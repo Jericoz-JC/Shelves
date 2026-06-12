@@ -109,4 +109,20 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_chronicle", ["chronicleId"])
     .index("by_user_and_chronicle", ["userId", "chronicleId"]),
+
+  reports: defineTable({
+    reporterId: v.string(),
+    targetType: v.union(v.literal("user"), v.literal("chronicle")),
+    // Exactly one of these is set, matching targetType.
+    targetClerkId: v.optional(v.string()),
+    chronicleId: v.optional(v.id("chronicles")),
+    reason: v.string(),
+    detail: v.optional(v.string()),
+    status: v.union(v.literal("open"), v.literal("resolved"), v.literal("dismissed")),
+    createdAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_reporter", ["reporterId"])
+    .index("by_target_user", ["targetClerkId"])
+    .index("by_target_chronicle", ["chronicleId"]),
 });

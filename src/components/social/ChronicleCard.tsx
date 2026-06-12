@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { MoreHorizontal, Trash2 } from "lucide-react";
+import { Flag, MoreHorizontal, Trash2 } from "lucide-react";
 import type { Chronicle, Reply } from "@/types/social";
 import { relativeTime } from "@/lib/utils/relativeTime";
 import { UserAvatar } from "./UserAvatar";
 import { ChronicleActions } from "./ChronicleActions";
 import { ChronicleReplies } from "./ChronicleReplies";
+import { ReportDialog, type ReportReason } from "./ReportDialog";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,6 +32,7 @@ interface ChronicleCardProps {
   onAvatarClick: (userId: string) => void;
   onBookmark: (id: string) => void;
   onDelete?: (id: string) => void;
+  onReport?: (id: string, reason: ReportReason) => void;
   /** Lets the feed lazily fetch reply threads only for expanded cards. */
   onRepliesToggle?: (chronicleId: string, expanded: boolean) => void;
 }
@@ -45,10 +47,12 @@ export function ChronicleCard({
   onAvatarClick,
   onBookmark,
   onDelete,
+  onReport,
   onRepliesToggle,
 }: ChronicleCardProps) {
   const [showReplies, setShowReplies] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
   const isOwn = chronicle.authorId === currentUserId;
   const displayName =
     chronicle.authorDisplayName ?? (isOwn ? "You" : "Reader");
@@ -74,7 +78,7 @@ export function ChronicleCard({
             <span className="text-[13px] text-muted-foreground shrink-0">
               {relativeTime(chronicle.createdAt)}
             </span>
-            {isOwn && onDelete && (
+            {((isOwn && onDelete) || (!isOwn && onReport)) && (
               <div className="ml-auto">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -86,13 +90,20 @@ export function ChronicleCard({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={() => setShowDeleteDialog(true)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete chronicle
-                    </DropdownMenuItem>
+                    {isOwn && onDelete ? (
+                      <DropdownMenuItem
+                        variant="destructive"
+                        onClick={() => setShowDeleteDialog(true)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete chronicle
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem onClick={() => setShowReportDialog(true)}>
+                        <Flag className="h-4 w-4 mr-2" />
+                        Report chronicle
+                      </DropdownMenuItem>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -169,6 +180,17 @@ export function ChronicleCard({
           />
         </div>
       </div>
+
+      {/* Report dialog */}
+      {onReport && (
+        <ReportDialog
+          open={showReportDialog}
+          onOpenChange={setShowReportDialog}
+          title="Report chronicle?"
+          description="Tell us what's wrong with this post. Reports are reviewed by the Shelves team."
+          onSubmit={(reason) => onReport(chronicle.id, reason)}
+        />
+      )}
 
       {/* Delete confirmation dialog */}
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
