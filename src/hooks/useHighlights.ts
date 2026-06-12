@@ -26,12 +26,14 @@ export interface ToolbarState {
   pendingText: string;
   x: number;
   y: number;
+  yBottom: number;
 }
 
 export interface DeleteTarget {
   cfi: string;
   x: number;
   y: number;
+  yBottom: number;
 }
 
 // epub.js Contents object (partial)
@@ -52,13 +54,16 @@ export function useHighlights(
     pendingText: "",
     x: 0,
     y: 0,
+    yBottom: 0,
   });
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [hasActiveSelection, setHasActiveSelection] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const highlightsRef = useRef<ReaderNote[]>([]);
   const themeRef = useRef(theme);
-  themeRef.current = theme;
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
 
   // Load and apply saved highlights whenever the rendition or book changes
   useEffect(() => {
@@ -73,7 +78,11 @@ export function useHighlights(
       // effect re-runs on a theme change (annotations.add is not idempotent
       // at the DOM level even though the internal map entry is overwritten)
       for (const h of highlights) {
-        try { rendition!.annotations.remove(h.cfi, "highlight"); } catch {}
+        try {
+          rendition!.annotations.remove(h.cfi, "highlight");
+        } catch {
+          // Nothing to remove on first render — annotations.add throws if absent
+        }
       }
       for (const h of highlights) {
         const cls = `hl-${h.color}`;
@@ -119,6 +128,7 @@ export function useHighlights(
           pendingText: text,
           x: window.innerWidth / 2,
           y: 120,
+          yBottom: 120,
         });
         return;
       }
@@ -126,12 +136,14 @@ export function useHighlights(
       const iframeRect = iframe.getBoundingClientRect();
       const outerX = iframeRect.left + selRect.left + selRect.width / 2;
       const outerY = iframeRect.top + selRect.top;
+      const outerYBottom = iframeRect.top + selRect.bottom;
 
       setToolbarState({
         pendingCfi: cfiRange,
         pendingText: text,
         x: outerX,
         y: outerY,
+        yBottom: outerYBottom,
       });
     }
 
@@ -142,6 +154,7 @@ export function useHighlights(
     ) {
       let x = window.innerWidth / 2;
       let y = window.innerHeight / 2;
+      let yBottom = window.innerHeight / 2;
 
       try {
         const range = contents.range(cfiRange);
@@ -151,12 +164,13 @@ export function useHighlights(
           const iframeRect = iframe.getBoundingClientRect();
           x = iframeRect.left + rect.left + rect.width / 2;
           y = iframeRect.top + rect.top;
+          yBottom = iframeRect.top + rect.bottom;
         }
       } catch {
         // fallback to center if range lookup fails
       }
 
-      setDeleteTarget({ cfi: cfiRange, x, y });
+      setDeleteTarget({ cfi: cfiRange, x, y, yBottom });
     }
 
     rendition.on("selected", handleSelected);
@@ -169,7 +183,7 @@ export function useHighlights(
   }, [rendition, viewerRef]);
 
   const dismissToolbar = useCallback(() => {
-    setToolbarState({ pendingCfi: null, pendingText: "", x: 0, y: 0 });
+    setToolbarState({ pendingCfi: null, pendingText: "", x: 0, y: 0, yBottom: 0 });
     setDeleteTarget(null);
     setHasActiveSelection(false);
     const iframe = viewerRef.current?.querySelector(

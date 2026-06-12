@@ -1,4 +1,5 @@
 import type { HighlightColor, ToolbarState, DeleteTarget } from "@/hooks/useHighlights";
+import { computeTooltipPlacement } from "@/lib/reader/tooltipPlacement";
 
 const COLORS: { key: HighlightColor; bg: string; ring: string }[] = [
   { key: "yellow", bg: "bg-yellow-300", ring: "ring-yellow-400" },
@@ -26,10 +27,16 @@ export function HighlightTooltip({
 }: HighlightTooltipProps) {
   const isDeleteMode = deleteTarget !== null;
   const rawX = isDeleteMode ? deleteTarget.x : toolbarState.x;
-  const rawY = isDeleteMode ? deleteTarget.y : toolbarState.y;
+  const anchorTop = isDeleteMode ? deleteTarget.y : toolbarState.y;
+  const anchorBottom = isDeleteMode ? deleteTarget.yBottom : toolbarState.yBottom;
 
-  // Clamp so the pill never goes off-screen
-  const top = Math.max(rawY - 56, 60);
+  // Below the selection (the native selection menu owns the space above it);
+  // clamp so the pill never goes off-screen.
+  const { top, caret } = computeTooltipPlacement(
+    anchorTop,
+    anchorBottom,
+    window.innerHeight
+  );
   const left = Math.min(Math.max(rawX, 80), window.innerWidth - 80);
 
   return (
@@ -135,15 +142,26 @@ export function HighlightTooltip({
         )}
       </div>
 
-      {/* Down-pointing caret */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0"
-        style={{
-          borderLeft: "6px solid transparent",
-          borderRight: "6px solid transparent",
-          borderTop: "8px solid rgba(23,23,23,0.95)",
-        }}
-      />
+      {/* Caret pointing at the anchored text */}
+      {caret === "up" ? (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 -top-2 w-0 h-0"
+          style={{
+            borderLeft: "6px solid transparent",
+            borderRight: "6px solid transparent",
+            borderBottom: "8px solid rgba(23,23,23,0.95)",
+          }}
+        />
+      ) : (
+        <div
+          className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0"
+          style={{
+            borderLeft: "6px solid transparent",
+            borderRight: "6px solid transparent",
+            borderTop: "8px solid rgba(23,23,23,0.95)",
+          }}
+        />
+      )}
     </div>
   );
 }
