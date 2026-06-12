@@ -26,6 +26,7 @@ import {
   FONT_FAMILIES,
 } from "@/lib/theme/readingThemes";
 import { useHighlights } from "@/hooks/useHighlights";
+import { useReaderTapZones } from "@/hooks/useReaderTapZones";
 
 export default function Reader() {
   const { bookId } = useParams<{ bookId: string }>();
@@ -103,11 +104,27 @@ export default function Reader() {
   }, [bookId]);
 
 
-  // Toggle controls on center tap — dismiss highlight toolbar first if active
-  const handleCenterTap = useCallback(() => {
-    if (hasActiveSelection) { dismissToolbar(); return; }
+  // Taps on the book text itself: left/right zones turn pages, the middle
+  // toggles the chrome. Handled inside the iframe (via epub.js relayed
+  // clicks) so the full surface stays free for native text selection.
+  const handleToggleControls = useCallback(() => {
     setShowControls((prev) => !prev);
-  }, [hasActiveSelection, dismissToolbar]);
+  }, []);
+
+  const handleInterceptTap = useCallback(() => {
+    if (hasActiveSelection || deleteTarget !== null) {
+      dismissToolbar();
+      return true;
+    }
+    return false;
+  }, [hasActiveSelection, deleteTarget, dismissToolbar]);
+
+  useReaderTapZones(rendition, viewerRef, {
+    onPrev: goPrev,
+    onNext: goNext,
+    onToggle: handleToggleControls,
+    onInterceptTap: handleInterceptTap,
+  });
 
   const handleAddCurrentBookmark = useCallback(() => {
     if (!currentBookmarkCfi) return;
@@ -129,12 +146,16 @@ export default function Reader() {
   // the tooltip's onTouchStart stopPropagation, so we check the target here).
   useEffect(() => {
     if (shareOpen) return;
-    const handler = (e: TouchEvent) => {
+    const handler = (e: TouchEvent | MouseEvent) => {
       if ((e.target as Element | null)?.closest("[data-highlight-tooltip]")) return;
       dismissToolbar();
     };
     document.addEventListener("touchstart", handler, { capture: true, passive: true });
-    return () => document.removeEventListener("touchstart", handler, { capture: true });
+    document.addEventListener("mousedown", handler, { capture: true });
+    return () => {
+      document.removeEventListener("touchstart", handler, { capture: true });
+      document.removeEventListener("mousedown", handler, { capture: true });
+    };
   }, [dismissToolbar, shareOpen]);
 
   // Keyboard navigation
@@ -281,13 +302,6 @@ export default function Reader() {
         />
 
         <ReaderNavigation onPrev={goPrev} onNext={goNext} />
-
-        {/* Center tap zone to toggle controls */}
-        <button
-          onClick={handleCenterTap}
-          className="absolute top-0 left-[40%] w-[20%] h-full z-10"
-          aria-label="Toggle controls"
-        />
 
       </div>
 

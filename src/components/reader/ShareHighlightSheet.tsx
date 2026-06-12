@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { NewChronicleDraft } from "@/hooks/useChronicles";
 import {
   Drawer,
@@ -31,13 +31,16 @@ export function ShareHighlightSheet({
   const [comment, setComment] = useState("");
   const [spoilerTag, setSpoilerTag] = useState(false);
 
-  // Reset fields each time the sheet opens
-  useEffect(() => {
+  // Reset fields each time the sheet opens (state adjustment during render,
+  // per React docs, instead of a cascading setState-in-effect)
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) {
       setComment("");
       setSpoilerTag(false);
     }
-  }, [open]);
+  }
 
   const charCount = comment.length;
   const overLimit = charCount > MAX_CHARS;
