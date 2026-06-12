@@ -108,6 +108,10 @@ export default function Feed() {
     bookmarkChronicle,
     deleteChronicle,
     addReply,
+    loadMore,
+    canLoadMore,
+    isLoadingMore,
+    setRepliesExpanded,
   } = useChronicles(chroniclesFeedType, {
     authorId: routeProfileUserId ?? null,
   });
@@ -346,6 +350,10 @@ export default function Feed() {
           onAvatarClick={handleAvatarClick}
           onBookmark={bookmarkChronicle}
           onDelete={deleteChronicle}
+          onRepliesToggle={setRepliesExpanded}
+          hasMore={canLoadMore}
+          loadingMore={isLoadingMore}
+          onLoadMore={loadMore ? () => loadMore(20) : undefined}
         />
       </SocialLayout>
 

@@ -12,6 +12,10 @@ interface FeedTimelineProps {
   onAvatarClick: (userId: string) => void;
   onBookmark: (id: string) => void;
   onDelete: (id: string) => void;
+  onRepliesToggle?: (chronicleId: string, expanded: boolean) => void;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
 export function FeedTimeline({
@@ -25,6 +29,10 @@ export function FeedTimeline({
   onAvatarClick,
   onBookmark,
   onDelete,
+  onRepliesToggle,
+  hasMore,
+  loadingMore,
+  onLoadMore,
 }: FeedTimelineProps) {
   if (chronicles.length === 0) {
     return (
@@ -50,8 +58,20 @@ export function FeedTimeline({
           onAvatarClick={onAvatarClick}
           onBookmark={onBookmark}
           onDelete={onDelete}
+          onRepliesToggle={onRepliesToggle}
         />
       ))}
+      {hasMore && onLoadMore && (
+        <div className="flex justify-center py-4">
+          <button
+            onClick={onLoadMore}
+            disabled={loadingMore}
+            className="px-5 py-2 rounded-full text-sm font-medium text-accent hover:bg-accent/10 disabled:opacity-50 transition-colors"
+          >
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

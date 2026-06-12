@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAuth, useClerk } from "@clerk/clerk-react";
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useConvexAuth, useMutation, usePaginatedQuery, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import type { Reply } from "@/types/social";
@@ -28,10 +28,22 @@ interface UseConvexChroniclesOptions {
   authorId?: string | null;
 }
 
-const FEED_LIMIT = 50;
-const RANKING_REFRESH_MS = 60_000;
-const EMPTY_CHRONICLES: ChronicleDocLike[] = [];
+const PAGE_SIZE = 20;
 const EMPTY_AUTHORS: AuthorRecord[] = [];
+const MAX_EXPANDED_PARENTS = 25;
+
+interface FeedPageDoc extends ChronicleDocLike {
+  authorId: string;
+  author: AuthorRecord | null;
+  viewer: ReactionState | null;
+}
+
+const AUTH_REQUIRED_FEEDS: ReadonlySet<FeedType> = new Set([
+  "following",
+  "bookmarks",
+  "likes",
+  "reposts",
+]);
 
 export function useConvexChronicles(
   feedType: FeedType = "forYou",
@@ -43,89 +55,59 @@ export function useConvexChronicles(
   const currentUserId = resolveCurrentUserId(userId);
 
   const [localReplies, setLocalReplies] = useState<Record<string, Reply[]>>({});
-  const [nowBucketMs, setNowBucketMs] = useState(() => Math.floor(Date.now() / 60_000) * 60_000);
+  // Reply docs are fetched lazily, only for chronicles the user has expanded.
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
 
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setNowBucketMs(Math.floor(Date.now() / 60_000) * 60_000);
-    }, RANKING_REFRESH_MS);
+  // Frozen per mount: the ranking time bucket. Engagement counts still update
+  // live; the decay reference refreshes on remount or feed switch. A ticking
+  // value here would reset the whole pagination stack every minute.
+  const [nowBucketMs] = useState(() => Math.floor(Date.now() / 60_000) * 60_000);
 
-    return () => window.clearInterval(interval);
-  }, []);
+  const skipFeed =
+    (AUTH_REQUIRED_FEEDS.has(feedType) && !isAuthenticated) ||
+    (feedType === "author" && !options?.authorId);
 
-  const forYouChronicles = useQuery(
-    api.chronicles.listForYou,
-    feedType === "forYou" ? { limit: FEED_LIMIT, nowBucketMs } : "skip"
+  const {
+    results: pageDocs,
+    status: feedStatus,
+    loadMore,
+  } = usePaginatedQuery(
+    api.chronicles.feedPage,
+    skipFeed
+      ? "skip"
+      : {
+          feed: feedType,
+          authorId: feedType === "author" ? options?.authorId ?? undefined : undefined,
+          nowBucketMs: feedType === "forYou" ? nowBucketMs : undefined,
+        },
+    { initialNumItems: PAGE_SIZE }
   );
-  const followingChronicles = useQuery(
-    api.chronicles.listFollowing,
-    feedType === "following" && isAuthenticated ? { limit: FEED_LIMIT } : "skip"
-  );
-  const authorChronicles = useQuery(
-    api.chronicles.listByAuthor,
-    feedType === "author" && options?.authorId ? { authorId: options.authorId, limit: FEED_LIMIT } : "skip"
-  );
-  const bookmarkedChronicles = useQuery(
-    api.chronicles.listBookmarked,
-    feedType === "bookmarks" && isAuthenticated ? { limit: FEED_LIMIT } : "skip"
-  );
-  const likedChronicles = useQuery(
-    api.chronicles.listLiked,
-    feedType === "likes" && isAuthenticated ? { limit: FEED_LIMIT } : "skip"
-  );
-  const repostedChronicles = useQuery(
-    api.chronicles.listReposted,
-    feedType === "reposts" && isAuthenticated ? { limit: FEED_LIMIT } : "skip"
-  );
-
-  const rawChroniclesResult = useMemo(() => {
-    if (feedType === "following") return followingChronicles;
-    if (feedType === "author") return authorChronicles;
-    if (feedType === "bookmarks") return bookmarkedChronicles;
-    if (feedType === "likes") return likedChronicles;
-    if (feedType === "reposts") return repostedChronicles;
-    return forYouChronicles;
-  }, [
-    authorChronicles,
-    bookmarkedChronicles,
-    feedType,
-    followingChronicles,
-    forYouChronicles,
-    likedChronicles,
-    repostedChronicles,
-  ]) as ChronicleDocLike[] | undefined;
-  const rawChronicles = rawChroniclesResult ?? EMPTY_CHRONICLES;
-
-  const chronicleIds = useMemo(
-    () => rawChronicles.map((chronicle) => chronicle._id as Id<"chronicles">),
-    [rawChronicles]
-  );
-
-  const reactionStates = useQuery(
-    api.chronicles.userReactionStates,
-    chronicleIds.length > 0 && isAuthenticated ? { chronicleIds } : "skip"
-  ) as Record<string, ReactionState> | undefined;
-
-  const authorIds = useMemo(
-    () => [...new Set(rawChronicles.map((chronicle) => chronicle.authorId))],
-    [rawChronicles]
-  );
-
-  const authorsResult = useQuery(
-    api.users.getBatch,
-    authorIds.length > 0 ? { clerkIds: authorIds } : "skip"
-  ) as AuthorRecord[] | undefined;
-  const authors = authorsResult ?? EMPTY_AUTHORS;
+  // usePaginatedQuery always returns an array (empty while loading/skipped).
+  const rawChronicles = pageDocs as FeedPageDoc[];
 
   const me = useQuery(api.users.getMe, isAuthenticated ? {} : "skip") as
     | (AuthorRecord & { handle?: string })
     | null
     | undefined;
 
+  // Lazy replies: only chronicles the user expanded, capped well below the
+  // server batch limit. Visible chronicle ids gate against stale expansions.
+  const visibleIds = useMemo(
+    () => new Set(rawChronicles.map((chronicle) => chronicle._id)),
+    [rawChronicles]
+  );
+  const expandedVisibleIds = useMemo(
+    () =>
+      expandedIds
+        .filter((id) => visibleIds.has(id))
+        .slice(-MAX_EXPANDED_PARENTS) as Id<"chronicles">[],
+    [expandedIds, visibleIds]
+  );
+
   const replyDocMap = useQuery(
     api.chronicles.listRepliesBatch,
-    chronicleIds.length > 0
-      ? { parentIds: chronicleIds, limitPerParent: 30 }
+    expandedVisibleIds.length > 0
+      ? { parentIds: expandedVisibleIds, limitPerParent: 30 }
       : "skip"
   ) as Record<string, ReplyDocLike[]> | undefined;
 
@@ -153,23 +135,23 @@ export function useConvexChronicles(
   const removeMutation = useMutation(api.chronicles.remove);
   const replyMutation = useMutation(api.chronicles.addReply);
 
-  const authorById = useMemo(() => {
-    const allAuthors = [...authors, ...replyAuthors];
-    return new Map(allAuthors.map((author) => [author.clerkId, author]));
-  }, [authors, replyAuthors]);
+  const replyAuthorById = useMemo(
+    () => new Map(replyAuthors.map((author) => [author.clerkId, author])),
+    [replyAuthors]
+  );
 
   const chronicles = useMemo(
     () =>
       rawChronicles.map((doc) =>
         enrichFeedChronicle({
           doc,
-          reactionState: reactionStates?.[doc._id],
-          author: authorById.get(doc.authorId),
+          reactionState: doc.viewer ?? undefined,
+          author: doc.author ?? undefined,
           fallbackAuthorName: doc.authorId === currentUserId ? me?.name ?? "You" : "Reader",
           fallbackAuthorHandle: doc.authorId === currentUserId ? me?.handle ?? "you" : "reader",
         })
       ),
-    [authorById, currentUserId, me?.handle, me?.name, rawChronicles, reactionStates]
+    [currentUserId, me?.handle, me?.name, rawChronicles]
   );
 
   const serverReplies = useMemo(() => {
@@ -178,7 +160,7 @@ export function useConvexChronicles(
       Object.entries(replyDocMap).map(([parentId, replies]) => [
         parentId,
         mapReplyDocs(replies).map((reply) => {
-          const author = authorById.get(reply.authorId);
+          const author = replyAuthorById.get(reply.authorId);
           const isCurrentUserReply = reply.authorId === currentUserId;
           return {
             ...reply,
@@ -191,7 +173,7 @@ export function useConvexChronicles(
         }),
       ])
     );
-  }, [authorById, currentUserId, me?.handle, me?.name, replyDocMap]);
+  }, [currentUserId, me?.handle, me?.name, replyAuthorById, replyDocMap]);
 
   const mergedReplies = useMemo(
     () => mergeReplyMaps(serverReplies, localReplies),
@@ -218,6 +200,17 @@ export function useConvexChronicles(
   return {
     chronicles,
     replies: mergedReplies,
+
+    loadMore: (numItems: number) => loadMore(numItems || PAGE_SIZE),
+    canLoadMore: feedStatus === "CanLoadMore",
+    isLoadingMore: feedStatus === "LoadingMore",
+
+    setRepliesExpanded: (chronicleId: string, expanded: boolean) => {
+      setExpandedIds((prev) => {
+        const without = prev.filter((id) => id !== chronicleId);
+        return expanded ? [...without, chronicleId] : without;
+      });
+    },
 
     addChronicle: (draft: NewChronicleDraft) => {
       if (!ensureAuthenticatedForWrite()) return;

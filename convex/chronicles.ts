@@ -1,9 +1,23 @@
 import { v } from "convex/values";
-import { internalMutation, mutation, query, type MutationCtx } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
+import { paginationOptsValidator } from "convex/server";
+import {
+  internalMutation,
+  mutation,
+  query,
+  type MutationCtx,
+  type QueryCtx,
+} from "./_generated/server";
+import type { Doc, Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { requireAuthenticatedUserId } from "./lib/auth";
 import { clampFeedLimit, rankForYouChronicles, sanitizeNowBucketMs } from "./lib/feedRanking";
+import {
+  decodeFeedCursor,
+  isAfterCursor,
+  selectFeedPage,
+  SAME_TS_BUFFER,
+  type FeedCursor,
+} from "./lib/feedPagination";
 
 const LIST_DEFAULT_LIMIT = 20;
 const FEED_DEFAULT_LIMIT = 40;
@@ -23,6 +37,11 @@ const BATCH_MAX_IDS = 100;
 const CASCADE_NODE_BATCH_SIZE = 20;
 const CASCADE_CHILD_PAGE_SIZE = 20;
 const CASCADE_REACTION_PAGE_SIZE = 50;
+
+// feedPage scan windows: the hard upper bound of index rows read per page.
+const FOLLOWING_PAGE_MAX_SCAN = 400;
+const AUTHOR_PAGE_MAX_SCAN = 300;
+const REACTION_PAGE_SCAN_PAD = 20;
 
 function pushUniqueChronicleId(
   target: Id<"chronicles">[],
@@ -397,6 +416,287 @@ export const userReactionStates = query({
     );
 
     return Object.fromEntries(states);
+  },
+});
+
+interface ViewerReactionState {
+  isLiked: boolean;
+  isReposted: boolean;
+  isBookmarked: boolean;
+}
+
+interface FeedPageItem extends Doc<"chronicles"> {
+  author: {
+    clerkId: string;
+    name?: string;
+    handle?: string;
+    avatarUrl?: string;
+  } | null;
+  viewer: ViewerReactionState | null;
+}
+
+/**
+ * Hydrate a page of chronicles with author records and the viewer's reaction
+ * states in bounded batches — at most one user lookup per distinct author and
+ * three point lookups per chronicle, all capped by the page size.
+ */
+async function hydrateFeedPage(
+  ctx: QueryCtx,
+  chronicles: Doc<"chronicles">[]
+): Promise<FeedPageItem[]> {
+  const authorIds = [...new Set(chronicles.map((chronicle) => chronicle.authorId))];
+  const authorDocs = await Promise.all(
+    authorIds.map((clerkId) =>
+      ctx.db
+        .query("users")
+        .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+        .unique()
+    )
+  );
+  const authorByClerkId = new Map(
+    authorDocs
+      .filter((author): author is NonNullable<typeof author> => author !== null)
+      .map((author) => [author.clerkId, author])
+  );
+
+  const identity = await ctx.auth.getUserIdentity();
+  const viewerId = identity?.subject ?? null;
+
+  const viewerStates = viewerId
+    ? await Promise.all(
+        chronicles.map(async (chronicle) => {
+          const [like, repost, bookmark] = await Promise.all([
+            ctx.db
+              .query("likes")
+              .withIndex("by_user_and_chronicle", (q) =>
+                q.eq("userId", viewerId).eq("chronicleId", chronicle._id)
+              )
+              .unique(),
+            ctx.db
+              .query("reposts")
+              .withIndex("by_user_and_chronicle", (q) =>
+                q.eq("userId", viewerId).eq("chronicleId", chronicle._id)
+              )
+              .unique(),
+            ctx.db
+              .query("bookmarks")
+              .withIndex("by_user_and_chronicle", (q) =>
+                q.eq("userId", viewerId).eq("chronicleId", chronicle._id)
+              )
+              .unique(),
+          ]);
+          return {
+            isLiked: like !== null,
+            isReposted: repost !== null,
+            isBookmarked: bookmark !== null,
+          };
+        })
+      )
+    : null;
+
+  return chronicles.map((chronicle, index) => {
+    const author = authorByClerkId.get(chronicle.authorId);
+    return {
+      ...chronicle,
+      author: author
+        ? {
+            clerkId: author.clerkId,
+            name: author.name,
+            handle: author.handle,
+            avatarUrl: author.avatarUrl,
+          }
+        : null,
+      viewer: viewerStates ? viewerStates[index] : null,
+    };
+  });
+}
+
+function topLevelByCreatedDesc(ctx: QueryCtx, cursor: FeedCursor | null, scanSize: number) {
+  return ctx.db
+    .query("chronicles")
+    .withIndex("by_parent_and_created", (q) => {
+      const base = q.eq("parentChronicleId", undefined);
+      return cursor ? base.lte("createdAt", cursor.t) : base;
+    })
+    .order("desc")
+    .take(scanSize);
+}
+
+async function reactionFeedPage(
+  ctx: QueryCtx,
+  table: "bookmarks" | "likes" | "reposts",
+  userId: string,
+  cursor: FeedCursor | null,
+  pageSize: number
+) {
+  const scanSize = pageSize + REACTION_PAGE_SCAN_PAD;
+  const rows = await ctx.db
+    .query(table)
+    .withIndex("by_user", (q) => {
+      const base = q.eq("userId", userId);
+      return cursor ? base.lt("_creationTime", cursor.ct) : base;
+    })
+    .order("desc")
+    .take(scanSize);
+  const scanExhausted = rows.length < scanSize;
+
+  const chronicleById = new Map<string, Doc<"chronicles">>();
+  await Promise.all(
+    rows.map(async (row) => {
+      if (chronicleById.has(row.chronicleId)) return;
+      const chronicle = await ctx.db.get(row.chronicleId);
+      if (chronicle) chronicleById.set(row.chronicleId, chronicle);
+    })
+  );
+
+  const seen = new Set<string>();
+  const selection = selectFeedPage(
+    rows,
+    (row) => {
+      // Reaction rows are scanned in _creationTime index order, so the
+      // cursor compares _creationTime alone (createdAt may not agree).
+      if (cursor && row._creationTime >= cursor.ct) return false;
+      if (seen.has(row.chronicleId)) return false;
+      const chronicle = chronicleById.get(row.chronicleId);
+      if (!chronicle || chronicle.parentChronicleId !== undefined) return false;
+      seen.add(row.chronicleId);
+      return true;
+    },
+    pageSize,
+    scanExhausted
+  );
+
+  return {
+    chronicles: selection.items.map((row) => chronicleById.get(row.chronicleId)!),
+    continueCursor: selection.continueCursor,
+    isDone: selection.isDone,
+  };
+}
+
+/**
+ * Cursor-paginated, server-hydrated feed (issue #27).
+ *
+ * One round trip returns a page of chronicles with author records and the
+ * viewer's reaction states attached. Every variant reads a bounded number of
+ * index rows per page, so feed cost no longer grows with table size.
+ *
+ * "For You" is a ranked discovery window: the first page ranks the newest
+ * candidate pool (exactly the legacy listForYou behavior); older pages
+ * continue in reverse-chronological order below that pool.
+ */
+export const feedPage = query({
+  args: {
+    feed: v.union(
+      v.literal("forYou"),
+      v.literal("following"),
+      v.literal("author"),
+      v.literal("bookmarks"),
+      v.literal("likes"),
+      v.literal("reposts")
+    ),
+    authorId: v.optional(v.string()),
+    nowBucketMs: v.optional(v.number()),
+    paginationOpts: paginationOptsValidator,
+  },
+  handler: async (ctx, { feed, authorId, nowBucketMs, paginationOpts }) => {
+    const pageSize = clampFeedLimit(paginationOpts.numItems, FEED_DEFAULT_LIMIT, FEED_MAX_LIMIT);
+    const cursor = decodeFeedCursor(paginationOpts.cursor);
+
+    let chronicles: Doc<"chronicles">[];
+    let continueCursor: string | null;
+    let isDone: boolean;
+
+    if (feed === "forYou") {
+      // Ranked chronological windows: each page is the next chronological
+      // slice (cursor-stable — pages partition the index, so no duplicates
+      // or gaps), reordered by engagement ranking within the window for
+      // display. The continue cursor follows the chronological spine, never
+      // the display order.
+      const scanSize = pageSize + SAME_TS_BUFFER;
+      const docs = await topLevelByCreatedDesc(ctx, cursor, scanSize);
+      const selection = selectFeedPage(
+        docs,
+        (doc) => cursor === null || isAfterCursor(doc, cursor),
+        pageSize,
+        docs.length < scanSize
+      );
+      chronicles = rankForYouChronicles(
+        selection.items,
+        selection.items.length,
+        sanitizeNowBucketMs(nowBucketMs ?? Date.now())
+      );
+      continueCursor = selection.continueCursor;
+      isDone = selection.isDone;
+    } else if (feed === "following") {
+      const followerId = await requireAuthenticatedUserId(ctx);
+      const follows = await ctx.db
+        .query("follows")
+        .withIndex("by_follower", (q) => q.eq("followerId", followerId))
+        .order("desc")
+        .take(FOLLOWING_MAX_FOLLOWEES);
+      const allowedAuthors = new Set([
+        followerId,
+        ...follows.map((follow) => follow.followeeId),
+      ]);
+
+      const docs = await topLevelByCreatedDesc(ctx, cursor, FOLLOWING_PAGE_MAX_SCAN);
+      const selection = selectFeedPage(
+        docs,
+        (doc) =>
+          (cursor === null || isAfterCursor(doc, cursor)) &&
+          allowedAuthors.has(doc.authorId),
+        pageSize,
+        docs.length < FOLLOWING_PAGE_MAX_SCAN
+      );
+      chronicles = selection.items;
+      continueCursor = selection.continueCursor;
+      isDone = selection.isDone;
+    } else if (feed === "author") {
+      if (!authorId) throw new Error("authorId is required for the author feed");
+      // by_author_and_created matches the cursor's createdAt ordering — the
+      // plain by_author index orders by _creationTime, which is not
+      // guaranteed to agree with createdAt.
+      const docs = await ctx.db
+        .query("chronicles")
+        .withIndex("by_author_and_created", (q) => {
+          const base = q.eq("authorId", authorId);
+          return cursor ? base.lte("createdAt", cursor.t) : base;
+        })
+        .order("desc")
+        .take(AUTHOR_PAGE_MAX_SCAN);
+      const selection = selectFeedPage(
+        docs,
+        (doc) =>
+          doc.parentChronicleId === undefined &&
+          (cursor === null || isAfterCursor(doc, cursor)),
+        pageSize,
+        docs.length < AUTHOR_PAGE_MAX_SCAN
+      );
+      chronicles = selection.items;
+      continueCursor = selection.continueCursor;
+      isDone = selection.isDone;
+    } else {
+      const userId = await requireAuthenticatedUserId(ctx);
+      const table =
+        feed === "bookmarks" ? "bookmarks" : feed === "likes" ? "likes" : "reposts";
+      const result = await reactionFeedPage(ctx, table, userId, cursor, pageSize);
+      chronicles = result.chronicles;
+      continueCursor = result.continueCursor;
+      isDone = result.isDone;
+    }
+
+    const page = await hydrateFeedPage(ctx, chronicles);
+
+    // Telemetry: visible in the Convex dashboard alongside execution time.
+    console.log(
+      `[feedPage] feed=${feed} returned=${page.length} cursor=${cursor !== null} done=${isDone}`
+    );
+
+    return {
+      page,
+      isDone,
+      continueCursor: continueCursor ?? "",
+    };
   },
 });
 
