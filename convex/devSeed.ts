@@ -67,6 +67,40 @@ export const seed = internalMutation({
   },
 });
 
+export const seedSpoiler = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const clerkId = `${SEED_AUTHOR_PREFIX}0`;
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_clerk_id", (q) => q.eq("clerkId", clerkId))
+      .unique();
+    if (!existing) {
+      await ctx.db.insert("users", {
+        clerkId,
+        email: `${clerkId}@example.test`,
+        name: "Seed Reader 1",
+        handle: "seedreader1",
+        searchText: "seed reader 1 seedreader1",
+      });
+    }
+    const id = await ctx.db.insert("chronicles", {
+      authorId: clerkId,
+      text: "[seed] the butler did it",
+      highlightText: "[seed] shocking quote",
+      bookTitle: "Seed Mystery",
+      bookRef: "seed-book-hash",
+      spoilerTag: true,
+      spoilerProgress: 0.5,
+      likeCount: 0,
+      replyCount: 0,
+      repostCount: 0,
+      createdAt: Date.now(),
+    });
+    return { id };
+  },
+});
+
 export const cleanup = internalMutation({
   args: {},
   handler: async (ctx) => {

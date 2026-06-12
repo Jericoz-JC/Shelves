@@ -60,6 +60,9 @@ export default defineSchema({
     bookTitle: v.optional(v.string()),
     parentChronicleId: v.optional(v.id("chronicles")),
     spoilerTag: v.optional(v.boolean()),
+    // Author's reading percentage (0..1) for bookRef at post time; viewers
+    // below this position get the content redacted server-side.
+    spoilerProgress: v.optional(v.number()),
     likeCount: v.number(),
     replyCount: v.number(),
     repostCount: v.number(),

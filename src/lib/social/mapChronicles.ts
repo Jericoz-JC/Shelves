@@ -12,6 +12,7 @@ export interface ChronicleDocLike {
   bookTitle?: string;
   bookRef?: string;
   spoilerTag?: boolean;
+  spoilerRedacted?: boolean;
 }
 
 export function mapChronicleDocToFeedChronicle(doc: ChronicleDocLike): Chronicle {
@@ -30,5 +31,6 @@ export function mapChronicleDocToFeedChronicle(doc: ChronicleDocLike): Chronicle
     bookTitle: doc.bookTitle,
     bookHash: doc.bookRef,
     spoilerTag: doc.spoilerTag,
+    spoilerRedacted: doc.spoilerRedacted,
   };
 }
